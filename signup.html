@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - BillMate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="signup-header">
+    <div class="logo">BillMate</div>
+    <a href="login.html" class="login-link">Already have an account? Login</a>
+  </div>
+
+  <!-- Signup Box -->
+  <div class="signup-container">
+    <div class="signup-heading-wrapper">
+        <h2 class="signup-heading">
+          <img src="icons/user.png" alt="user Icon" class="user-icon" />
+          Create Your Account
+        </h2>
+      </div>
+      
+      
+    <form class="signup-form">
+      <form id="signupForm" class="signup-form">
+        <input type="text" id="name" placeholder="Full Name" required />
+        <input type="email" id="signupEmail" placeholder="Email Address" required />
+        <input type="password" id="signupPassword" placeholder="Password" required />
+        <input type="password" id="confirmPassword" placeholder="Confirm Password" required />
+        <button type="submit">Sign Up</button>
+        <p id="signup-message"></p> <!-- For feedback -->
+      </form>
+  </div>
+
+</body>
+</html>

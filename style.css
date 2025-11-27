@@ -1,0 +1,1034 @@
+/* ==========================================================================
+   Base Styles
+   ========================================================================== */
+   body {
+    margin: 0;
+    font-family: sans-serif;
+    background-color: #1f2937;
+    color: #1f2937;
+    
+    background-color: #1f2937; /* light blue */
+    padding: 50px 30px;
+    border-radius: 20px;
+    margin-top: -80px; /* pull upward */
+    width: 90%;
+    max-width: 1000x;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    
+  }
+ 
+  
+  
+  /* ==========================================================================
+     Navbar
+     ========================================================================== */
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem; /* Adjusted padding from duplicate rules */
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1000;
+
+  }
+  
+  .logo {
+    font-size: 1.8rem; /* Combined with duplicate, adjust as needed */
+    font-weight: bold;
+    color: #1d4ed8; /* Adjusted for consistency; if different logos are needed, consider renaming classes */
+    margin: 2rem 1rem 0rem 1rem;
+  }
+  
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+  }
+  
+  .nav-links a {
+    text-decoration: none;
+    color: #374151;
+  }
+  
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .login-btn {
+    background-color: #2563eb;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+  }
+  
+  /* ==========================================================================
+     Hero & Call-to-Action Sections
+     ========================================================================== */
+  /* Hero Section */
+  .hero,
+  .cta {
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+  
+  .hero {
+    background-color: #eff6ff;
+  }
+  
+  .hero h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+  }
+  
+  .hero p {
+    font-size: 1.1rem;
+    margin: 1rem 0 2rem;
+  }
+  
+  /* Call-to-Action Section */
+  .cta {
+    background-color: #2563eb;
+    color: white;
+  }
+  
+  .cta-btn,
+  .cta-btn-white {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .cta-btn {
+    background-color: #2563eb;
+    color: white;
+  }
+  
+  .cta-btn-white {
+    background-color: white;
+    color: #2563eb;
+    font-weight: bold;
+  }
+  
+  /* ==========================================================================
+     Features Section
+     ========================================================================== */
+  .features {
+    padding: 4rem 1rem;
+    text-align: center;
+  }
+  
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .feature-box {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* ==========================================================================
+     How It Works Section
+     ========================================================================== */
+     .how-billmate-works {
+      background: linear-gradient(90deg, #ffffff, #d6e5ff);
+      padding-top: 30px;
+      padding-bottom: 30px;
+      text-align: center;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .how-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 40px;
+    }
+    
+    .how-cards-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .how-card {
+      background: #fff;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .how-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    
+    .how-card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    
+    .how-card p {
+      color: #4b5563;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    
+  
+  /* ==========================================================================
+     Image & Text Overlap (for enhanced Hero Section)
+     ========================================================================== */
+  .hero.new-hero {
+    position: relative;
+  }
+  
+  .overlap-image {
+    position: absolute;
+    bottom: -120px;
+    left: 75%;
+    transform: translateX(-50%);
+    width: 300px;
+    z-index: 10;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  }
+  
+  .overlap-text {
+    position: relative;
+    z-index: 2;
+    margin-bottom: -160px;
+    padding: 2rem 2rem 2rem 5rem;
+    border-radius: 20px;
+    max-width: 500px;
+    width: fit-content;
+  }
+  
+  /* ==========================================================================
+     Footer
+     ========================================================================== */
+  .footer {
+    background-color: #111827;
+    color: white;
+    padding: 2rem 1rem;
+  }
+  
+  .footer-container {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .footer-links {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .footer-links a {
+    color: white;
+    text-decoration: none;
+  }
+  
+  /* ==========================================================================
+     Effects
+     ========================================================================== */
+  .zoom-effect {
+    transition: transform 0.3s ease;
+  }
+  
+  .zoom-effect:hover {
+    transform: scale(1.05);
+  }
+  
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+
+  /* ============================
+     NAVIGATION STYLES
+  ============================ */
+  .nav-links {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+    margin: 2rem 1rem 0rem 1rem;
+  }
+  
+  .nav-links li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+  }
+  
+  .login-btn {
+    background-color: #1d4ed8;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    margin: 2rem 1rem 0rem 1rem;
+  }
+  
+  /* ============================
+     DROPDOWN MENU
+  ============================ */
+  .dropdown {
+    position: relative;
+  }
+  
+  .dropdown-content {
+  display: none;
+  position: absolute;
+  top: 120%;
+  left: 0;
+  min-width: 220px;
+  background-color: #fff;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  padding: 1rem;
+  border-radius: 10px;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+  
+  .dropdown:hover .dropdown-content {
+  display: flex;
+}
+
+  
+  .dropdown-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  padding: 0.6rem 0;
+  transition: all 0.3s ease;
+}
+
+  
+  .dropdown-item img {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .dropdown-item:hover {
+    color: #1d4ed8;
+    transform: translateX(3px);
+  }
+  
+
+
+  /* ============================
+     LOGO & CTA BUTTON
+  ============================ */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1d4ed8;
+  }
+  
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .cta-btn-blue {
+    background-color: #1d4ed8;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    display: inline-block;
+  }
+  
+  .cta-btn-blue:hover {
+    background-color: #2563eb;
+    transform: scale(1.05);
+  }
+  
+  /* ============================
+     SIGNUP PAGE STYLES
+  ============================ */
+  .signup-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 40px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .signup-header .logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1d4ed8;
+  }
+  
+  .signup-header .login-link {
+    font-size: 14px;
+    color: #1d4ed8;
+    text-decoration: none;
+  }
+  
+  .signup-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 30px;
+    background: #fff;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+  }
+  
+  .signup-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  
+  .signup-form input {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+  }
+  
+  .signup-form button {
+    width: 100%;
+    padding: 12px;
+    background-color: #1d4ed8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .signup-form button:hover {
+    background-color: #1741b3;
+  }
+  
+  .signup-heading-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .signup-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 2rem;
+    font-weight: 600;
+    color: #1f2937;
+    text-align: center;
+  }
+  
+  .user-icon {
+    width: 32px;
+    height: 32px;
+  } 
+  
+
+
+
+  .title-with-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 10px 0;
+    text-align: center;
+  }
+  
+  .step-title {
+    font-size: 1.25rem;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .gif-icon {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+  }
+
+  .steps-grid p{
+    margin: 0px 0px 19px 0px;
+  }
+  
+  /* ============================
+     LOGIN PAGE STYLES
+  ============================ */
+  .login-container {
+    background: white;
+    padding: 3rem 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+  
+  h2 {
+    margin-bottom: 0.5rem;
+  }
+  
+  .subtitle {
+    color: #666;
+    margin-bottom: 2rem;
+  }
+  
+  input {
+    width: 100%;
+    padding: 0.8rem;
+    margin: 0.5rem 0;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .login-body {
+    background-color: #eff6ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  
+
+  
+  .login-container h2 {
+    margin-bottom: 1.5rem;
+    color: #1f2937;
+  }
+  
+  .login-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .login-container input[type="email"],
+  .login-container input[type="password"] {
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .login-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  
+  .login-options a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+  
+  .login-container p {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  
+  /* ============================
+     HERO SECTION
+  ============================ */
+  .hero.new-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3rem 5%;
+    background: linear-gradient(90deg, #ffffff, #d6e5ff);
+    flex-wrap: wrap;
+    gap: 2rem;
+    color: #000;
+  }
+  
+  .transition-image {
+    display: block;
+    margin: 2rem auto -50px auto;
+    max-width: 300px;
+    z-index: 1;
+    position: relative;
+  }
+  
+  .hero-left,
+  .hero-right {
+    flex: 1;
+    min-width: 280px;
+  }
+  
+  .hero-left h1 {
+    font-size: 2.5rem;
+    color: #1d4ed8;
+    margin-bottom: 1rem;
+  }
+  
+  .hero-left p {
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 1.5rem;
+  }
+  
+  .hero-right {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .hero-right img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* ============================
+     FEATURES SECTION
+  ============================ */
+  .features-section {
+    padding: 6rem 2rem;
+    background: linear-gradient(90deg, #ffffff, #d6e5ff);
+    text-align: center;
+  }
+  
+  .features-section h2 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+  }
+  
+  .feature-card {
+    background-color: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-10px);
+  }
+  
+  .feature-card img {
+    width: 60px;
+    margin-bottom: 1rem;
+  }
+  
+  .feature-card h3 {
+    margin: 1rem 0 0.5rem;
+  }
+  
+  /* ============================
+     UPDATED FEATURE GRID (Home)
+  ============================ */
+  .updated-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  
+  .fancy-box {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+    transition: all 0.4s ease;
+    cursor: pointer;
+  }
+  
+  .fancy-box img {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 1rem;
+  }
+  
+  .fancy-box h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.8rem;
+    color: #1d4ed8;
+  }
+  
+  .fancy-box p {
+    color: #444;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  
+  .fancy-box:hover {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    transform: scale(1.05);
+  }
+
+   /* ============================
+      FEATURE button
+  ============================ */
+  .feature-modal-content {
+    background: white;
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    width: 95%;
+    max-width: 600px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    animation: slideIn 0.3s ease-in-out;
+  }
+.feature-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.feature-modal.hidden {
+  display: none;
+}
+  
+  
+  #modalFields {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  #modalFields input,
+  #modalFields select {
+    padding: 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+  
+  .button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    gap: 1rem;
+  }
+  
+  .nav-btn, .submit-btn {
+    flex: 1;
+    padding: 0.9rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .nav-btn {
+    background-color: #f1f1f1;
+    color: #333;
+  }
+  
+  .submit-btn {
+    background-color: #2563eb;
+    color: white;
+  }
+  
+  .nav-btn:hover, .submit-btn:hover {
+    opacity: 0.9;
+  }
+  
+  .hidden {
+    display: none;
+  }
+
+  .gif-icon{
+    width: 50px;
+  }
+ 
+  .blue-box {
+    background: linear-gradient(90deg, #ffffff, #d6e5ff);
+    padding: 50px 30px;
+    border-radius: 20px;
+    margin-top: - auto; /* pull upward */
+    width: 90%;
+    max-width: 1000x;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  }
+  
+  .section-title {
+    text-align: center;
+    font-size: 2rem;
+    color: #0077cc;
+    margin-bottom: 40px;
+  }
+  .blue-box {
+    background-color: #e6f0ff;
+    padding: 60px 30px;
+    border-radius: 20px;
+    margin-top: 60px;
+    animation: floatBox 6s ease-in-out infinite;
+  }
+  
+  @keyframes floatBox {
+    0%   { transform: translateY(0px); }
+    50%  { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+  .custom-modal {
+  display: none;
+  position: fixed;
+  z-index: 20;
+  padding-top: 100px;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: auto;
+  padding: 30px;
+  border-radius: 12px;
+  width: 60%;
+  position: relative;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.close-btn {
+  color: #aaa;
+  position: absolute;
+  top: 12px;
+  right: 20px;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: #000;
+}
+.automated-reminders {
+    padding: 80px 0;
+    background: #f8faff;
+    text-align: center;
+}
+
+.auto-container {
+    width: 80%;
+    margin: auto;
+}
+
+.automated-reminders h2 {
+    font-size: 38px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.auto-subtitle {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 40px;
+}
+
+.auto-features {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.auto-card {
+    background: white;
+    padding: 30px 25px;
+    border-radius: 16px;
+    width: 280px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    transition: 0.3s ease;
+}
+
+.auto-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+}
+
+.auto-card i {
+    font-size: 45px;
+    color: #4A90E2;
+    margin-bottom: 15px;
+}
+
+.auto-card h3 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    color: #222;
+}
+
+.auto-card p {
+    font-size: 15px;
+    color: #555;
+}
+
+.auto-btn {
+    display: inline-block;
+    padding: 14px 30px;
+    font-size: 18px;
+    background: #4A90E2;
+    color: white;
+    border-radius: 30px;
+    text-decoration: none;
+    transition: 0.3s ease;
+}
+
+.auto-btn:hover {
+    background: #357ABD;
+}
+
+
+.automated-reminders,
+.easy-scheduling,
+.personalized-messages {
+    padding: 80px 0;
+    background: #f8faff;
+    text-align: center;
+}
+
+.auto-container {
+    width: 80%;
+    margin: auto;
+}
+
+.auto-subtitle {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 40px;
+}
+
+.auto-features {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.auto-card {
+    background: white;
+    padding: 30px 25px;
+    border-radius: 16px;
+    width: 280px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    transition: 0.3s ease;
+}
+
+.auto-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+}
+
+.auto-card i {
+    font-size: 45px;
+    color: #4A90E2;
+    margin-bottom: 15px;
+}
+/* Match automated reminder icons with other icon sizes and move icon slightly down */
+.automated-reminders .auto-card img {
+    width: 60px;      /* same size as feature icons */
+    height: 60px;
+    object-fit: contain;
+    margin-bottom: 1rem;
+    margin-top: 10px;   /* added: moves the icon slightly down */
+}
+/* Easy Scheduling icons - same size as automated section */
+.easy-scheduling .auto-card img {
+    width: 60px;      /* same width */
+    height: 60px;     /* same height */
+    object-fit: contain;
+    margin-bottom: 1rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.personalized-messages .auto-card img {
+    width: 60px;          /* same size as automated icons */
+    height: 60px;
+    object-fit: contain;
+    margin-bottom: 1rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+.personalized-messages .auto-card img {
+    margin-top: 10px; 
+}
+.easy-scheduling h2,
+.personalized-messages h2 {
+    font-size: 2rem;          /* same as Automated Reminders */
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+.easy-scheduling .auto-subtitle,
+.personalized-messages .auto-subtitle {
+    font-size: 1.1rem;
+    color: #4b5563;           /* soft gray */
+    margin-bottom: 2rem;
+}

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- AOS CSS -->
+<link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bill Reminder - Homepage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar zoom-effect">
+    <div class="logo zoom-effect">
+      <img src="icons/invoice.png" alt="BillMate icon" class="logo-icon" />
+      <span>BillMate</span>
+    </div>
+
+    <div class="nav-right">
+      <ul class="nav-links">
+        <li class="dropdown zoom-effect">
+          <a href="#">Features</a>
+          <div class="dropdown-content">
+            <div class="dropdown-column">
+              <div class="dropdown-item" onclick="openModal('automated-reminder-modal')">
+                <img src="icons/check.png" alt="Automated Reminders" />
+                <span>Automated Reminders</span>
+              </div>
+              <div class="dropdown-item" onclick="openModal('easy-scheduling-modal')">
+                <img src="icons/calendar.png" alt="Easy Scheduling" />
+                <span>Easy Scheduling</span>
+              </div>
+              <div class="dropdown-item" onclick="openModal('personalized-message-modal')">
+                <img src="icons/whatsapp.png" alt="Personalized Messages" />
+                <span>Personalized Messages</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li><a href="#how" class="zoom-effect">How It Works</a></li>
+        <li><a href="#contact" class="zoom-effect">Contact</a></li>
+      </ul>
+      <a href="login.html" class="login-btn zoom-effect">Login</a>
+    </div>
+  </nav>
+  
+
+  <!-- Hero Section -->
+  <section class="hero new-hero zoom-effect">
+    <div class="hero-left overlap-text">
+      <h1>Never Miss a <span class="highlight">Bill</span> Again</h1>
+      <p>Manage, track, and pay your bills with ease using BillMate.</p>
+      <a href="signup.html" class="cta-btn-blue">Get Started</a>
+      <p class="subtext">No credit card required. <br> Get started in less than a minute!</p>
+    </div>
+    <div class="hero-right"></div>
+    <img class="overlap-image" src="/icons/bill4.webp" alt="Floating Illustration" />
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features-section">
+    <h2>Key Features</h2>
+    <div class="features-grid">
+      <div class="feature-card" onclick="openModal('automated-reminder-modal')">
+        <img src="icons/remainder.png" alt="Reminders Icon" />
+        <h3>Automated Reminders</h3>
+        <p>Set email, SMS, or app notifications so you never miss a due date.</p>
+      </div>
+      <div class="feature-card" onclick="openModal('easy-scheduling-modal')">
+        <img src="icons/bill3.png" alt="Scheduling Icon" />
+        <h3>Easy Scheduling</h3>
+        <p>Choose flexible billing cycles that match your lifestyle.</p>
+      </div>
+      <div class="feature-card" onclick="openModal('personalized-message-modal')">
+        <img src="icons/personalized.png" alt="Personalization Icon" />
+        <h3>Personalized Messages</h3>
+        <p>Customize reminders with names, emojis, and more fun stuff.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Automated Reminders Section -->
+<section class="automated-reminders" id="automated-reminders">
+    <div class="auto-container">
+        <h2>Automated Reminders</h2>
+        <p class="auto-subtitle">Set email, SMS, or app notifications so you never miss a due date.</p>
+
+        <div class="auto-features">
+
+            <div class="auto-card">
+                <img src="icons/email.png" alt="Email Icon">
+                <h3>Email Alerts</h3>
+                <p>Receive notification directly in your inbox.</p>
+            </div>
+
+            <div class="auto-card">
+                <img src="icons/sms.png" alt="SMS Icon">
+                <h3>SMS Reminders</h3>
+                <p>Get instant SMS notifications before due dates.</p>
+            </div>
+
+            <div class="auto-card">
+                <img src="icons/appbell.png" alt="App Notification Icon">
+                <h3>App Notifications</h3>
+                <p>Get real-time app alerts for every bill reminder.</p>
+            </div>
+
+        </div>
+
+        <a href="signup.html" class="get-started-btn">Get Started</a>
+    </div>
+</section>
+
+
+  <!-- Easy Scheduling Section -->
+<section class="easy-scheduling" id="easy-scheduling">
+    <div class="auto-container">
+        <h2>Easy Scheduling</h2>
+        <p class="auto-subtitle">
+            Choose flexible billing cycles that match your lifestyle.
+        </p>
+
+        <div class="auto-features">
+
+            <div class="auto-card">
+                <img src="icons/due-dates.png" alt="Flexible Due Dates Icon">
+                <h3>Flexible Due Dates</h3>
+                <p>Pick custom due dates that suit your payment habits.</p>
+            </div>
+
+            <div class="auto-card">
+                <img src="icons/repeat-cycle.png" alt="Auto Repeat Cycles Icon">
+                <h3>Auto Repeat Cycles</h3>
+                <p>Set monthly, quarterly, or yearly reminders automatically.</p>
+            </div>
+
+            <div class="auto-card">
+                <img src="icons/smart-timing.png" alt="Smart Timing Icon">
+                <h3>Smart Timing</h3>
+                <p>Receive alerts at the perfect time chosen by you.</p>
+            </div>
+
+        </div>
+
+        <a href="signup.html" class="get-started-btn">Get Started</a>
+    </div>
+</section>
+
+
+  <!-- Personalized Messages Section -->
+<section class="personalized-messages" id="personalized-messages">
+    <div class="auto-container">
+        <h2>Personalized Messages</h2>
+        <p class="auto-subtitle">
+            Customize reminders with names, emojis, and more fun stuff.
+        </p>
+
+        <div class="auto-features">
+
+            <div class="auto-card">
+                <img src="icons/custom-name.png" alt="Custom Names">
+                <h3>Custom Names</h3>
+                <p>Add your own labels or nicknames to each reminder.</p>
+            </div>
+
+            <div class="auto-card">
+                <img src="icons/emoji.png" alt="Emoji Support">
+                <h3>Emojis Support</h3>
+                <p>Make reminders friendly and engaging with emojis.</p>
+            </div>
+
+            <div class="auto-card">
+                <img src="icons/personaliz.png" alt="Personalization">
+                <h3>Full Personalization</h3>
+                <p>Make every notification feel unique and enjoyable.</p>
+            </div>
+
+        </div>
+
+        <a href="signup.html" class="get-started-btn">Get Started</a>
+    </div>
+</section>
+
+
+  <!-- How It Works Section -->
+  <div class="blue-box">
+    <section class="how-billmate-works">
+      <h2 class="section-title">How BillMate Work</h2>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="title-with-icon">
+            <h3 class="step-title">Set Once, Stay Sorted</h3>
+            <img src="/icons/verified.gif" alt="Reminder Icon" class="gif-icon" />
+          </div>
+          <p class="step-desc">Add your bill details once. BillMate tracks everything so you don’t have to.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="title-with-icon">
+            <h3 class="step-title">Get Smart Alerts</h3>
+            <img src="/icons/alert.gif" alt="Alert Icon" class="gif-icon" />
+          </div>
+          <p class="step-desc">Receive timely reminders via Email, SMS, or App—right when you need them.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="title-with-icon">
+            <h3 class="step-title">Customize Your Message</h3>
+            <img src="/icons/message.gif" alt="Message Icon" class="gif-icon" />
+          </div>
+          <p class="step-desc">Make your reminders personal with names, emojis, and custom messages.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contact" class="footer">
+      <div class="footer-container">
+        <p class="zoom-effect">&copy; 2025 BillMate. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="#" class="zoom-effect">Privacy</a>
+          <a href="#" class="zoom-effect">Terms</a>
+          <a href="#" class="zoom-effect">Support</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Modals -->
+  <div id="automated-reminder-modal" class="custom-modal">
+    <div class="modal-content">
+      <span class="close-btn" onclick="closeModal('automated-reminder-modal')">&times;</span>
+      <h2>Automated Reminders</h2>
+      <p>Set email, SMS, or app notifications so you never miss a due date.</p>
+    </div>
+  </div>
+  <div id="featureModal" class="feature-modal hidden">
+  <div class="feature-modal-content">
+    <span id="closeModal" class="close-btn">&times;</span>
+    <h2 id="modalTitle">Feature Title</h2>
+    <p id="modalDescription">Feature description goes here...</p>
+    <form id="featureForm">
+      <div id="modalFields"></div>
+      <div class="button-group">
+        <button type="button" id="prevBtn" class="nav-btn hidden">Previous</button>
+        <button type="button" id="saveBtn" class="nav-btn">Save</button>
+        <button type="button" id="nextBtn" class="nav-btn">Next</button>
+        <button type="submit" id="submitBtn" class="submit-btn hidden">Submit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+  <!-- Script -->
+  <script>
+    function openModal(id) {
+      document.getElementById(id).style.display = "block";
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+  </script>
+
+  <script src="script.js"></script>
+</body>
+</html>
