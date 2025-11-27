@@ -67,6 +67,7 @@ BillMate/
 ![Signup](signup.png)
 
 
+
 🔮 Future Improvements
 
 Mobile app integration
@@ -76,10 +77,14 @@ Push notifications
 Cloud storage for bill history
 
 
+
+
+
 Getting Started
 
 Clone the repository:
 
 git clone <https://github.com/priyanshukumar13/Billmate>
+
 
 
