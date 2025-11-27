@@ -43,13 +43,13 @@ Make reminders fun & unique with:
 ## Screenshots
 
 ### Homepage
-![Homepage](screenshot/homepage.jpg)
+![Homepage](homepage.png)
 
 ### How It Works
-![How It Works](screenshot/how-it-works.jpg)
+![How It Works](how-it-works.png)
 
 ### Scheduling
-![Scheduling](screenshot/scheduling.jpg)
+![Scheduling](scheduling.png)
 
 ### Signup Page
-![Signup](screenshot/signup.jpg)
+![Signup](signup.png)
