@@ -38,6 +38,18 @@ Make reminders fun & unique with:
 - ⚡ *JavaScript* – Logic & validation  
 - 🖼 *Font Awesome + PNGs* – Icons
 
+- 📂 Project Structure
+BillMate/
+│── icons/
+│── index.html
+│── login.html
+│── login.css
+│── login.js
+│── signup.html
+│── script.js
+│── style.css
+│── README.md   ← (only this file is required for overview)
+
 ---
 
 ## Screenshots
@@ -53,3 +65,11 @@ Make reminders fun & unique with:
 
 ### Signup Page
 ![Signup](signup.png)
+
+
+Getting Started
+
+Clone the repository:
+
+git clone <repo-url>
+
