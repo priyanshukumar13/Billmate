@@ -1,0 +1,40 @@
+:root {
+    --primary: #2563eb;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --border: #e2e8f0;
+}
+
+body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; }
+
+.app-container { display: flex; min-height: 100vh; }
+
+/* REUSE SIDEBAR STYLES */
+.sidebar { width: 260px; background: white; border-right: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-direction: column; }
+.logo-area { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--primary); margin-bottom: 2rem; }
+.logo-icon { width: 30px; }
+.side-nav { flex: 1; }
+.side-nav a { display: block; padding: 12px; text-decoration: none; color: #64748b; border-radius: 8px; margin-bottom: 5px; }
+.side-nav a.active { background: #eff6ff; color: var(--primary); font-weight: 600; }
+
+.main-content { flex: 1; padding: 2.5rem 15%; } /* Extra padding for a centered form look */
+
+.card { background: white; padding: 2rem; border-radius: 16px; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+.card h3 { margin-top: 0; margin-bottom: 1.5rem; font-size: 1.1rem; }
+
+.form-group { margin-bottom: 1.2rem; }
+.form-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #64748b; }
+.form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; }
+
+/* Toggle Switch Styles */
+.toggle-group { display: flex; justify-content: space-between; align-items: center; }
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .4s; border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--primary); }
+input:checked + .slider:before { transform: translateX(20px); }
+
+.btn-primary { background: var(--primary); color: white; border: none; padding: 14px 30px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+.btn-danger { background: #fff1f2; color: #ef4444; border: 1px solid #fecaca; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.btn-logout { width: 100%; padding: 10px; background: #fff1f2; color: #ef4444; border: none; border-radius: 8px; cursor: pointer; }

@@ -1,0 +1,1164 @@
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 100px; /* This prevents the Navbar from covering the top */
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg-light: #f8fafc;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --white: #ffffff;
+    --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    line-height: 1.6;
+}
+
+/* ================= NAVBAR BASE ================= */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 5%; 
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    height: 80px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.logo-icon { 
+    width: 32px; 
+    height: 32px; 
+    object-fit: contain;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-main);
+    font-weight: 500;
+    transition: color 0.3s;
+    font-size: 1rem;
+}
+
+.nav-links a:hover, 
+.nav-links a.active { 
+    color: var(--primary); 
+}
+
+/* ================= DROPDOWN LOGIC ================= */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    height: 80px; /* Matches Navbar height */
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 80px; /* Positions right at the bottom of the navbar */
+    left: 0;
+    background-color: #fff;
+    min-width: 220px;
+    box-shadow: 0px 8px 24px rgba(0,0,0,0.12);
+    border-radius: 0 0 12px 12px;
+    padding: 10px 0;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    z-index: 2000;
+}
+
+/* Show Dropdown on Hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+    animation: navFadeIn 0.3s ease;
+}
+
+.dropdown-content a {
+    color: var(--text-main);
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.dropdown-content a:hover {
+    background-color: #f0f7ff;
+    color: var(--primary);
+    padding-left: 25px; /* Subtle slide effect */
+}
+
+/* Dropdown Arrow (Optional) */
+.dropbtn::after {
+    content: ' ▾';
+    font-size: 0.8rem;
+    vertical-align: middle;
+    opacity: 0.6;
+}
+
+/* ================= AUTH BUTTON ================= */
+.login-btn {
+    background: var(--primary);
+    color: white !important;
+    padding: 0.6rem 1.5rem;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: transform 0.2s, background 0.3s;
+}
+
+.login-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes navFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+/* ===== HOME NAV LINK ===== */
+.nav-links a.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.nav-links a.active::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  left: 0;
+  bottom: -6px;
+  background-color: var(--primary);
+}
+html {
+    scroll-behavior: smooth; /* Makes it slide down nicely instead of jumping */
+    scroll-padding-top: 100px; /* Offsets the scroll so the Navbar doesn't cover the title */
+}
+/* Hero Section Refined */
+.hero {
+    display: flex;
+    align-items: center; 
+    justify-content: center;
+    padding: 0 10%; 
+    background: linear-gradient(135deg, #ffffff 0%, #e0eaff 100%);
+    /* fill screen minus navbar height */
+    min-height: calc(100vh - 80px); 
+    position: relative;
+    overflow: hidden; /* This kills any remaining ghost boxes */
+}
+
+.hero-left {
+    flex: 1;
+    margin-top: 0; /* Changed from -50px to 0 to stop overlapping */
+    z-index: 2;
+}
+
+.hero-right {
+    flex: 1;
+    display: flex;
+    /* Pushes the phone to the far right of its container */
+    justify-content: flex-end !important; 
+    position: relative;
+    /* Moves it 50px further right and 80px down */
+    transform: translate(50px, 25px) !important; 
+    z-index: 1;
+}
+
+
+.hero h1 {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    color: #0f172a;
+}
+
+.highlight { color: var(--primary); }
+
+.cta-btn-blue {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    padding: 1rem 2.5rem;
+    border-radius: 50px;
+    text-decoration: none;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    box-shadow: 0 4px 14px 0 rgba(37,99,235,0.39);
+}
+
+/* Hero Feature Boxes (below Get Started) */
+.hero-features {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 40px;
+
+    /* 🔑 CENTER BETWEEN TEXT & PHONE */
+    margin-left: auto;
+    margin-right: auto;
+
+    max-width: 620px;
+}
+
+.hero-features .feature-box {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    background: white;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    transition: 
+        transform 0.35s ease,
+        box-shadow 0.35s ease;
+    cursor: pointer;
+}
+
+.hero-features .feature-box h4 {
+    font-size: 14px;
+    margin: 8px 0 4px;
+}
+
+.hero-features .feature-box p {
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+
+
+.overlap-image {
+    width: 80%;
+    max-width: 600px;
+    filter: drop-shadow(20px 20px 50px rgba(0,0,0,0.1));
+    animation: float 6s ease-in-out infinite;
+    
+    background: transparent;
+    border-radius: 40px;
+    filter: drop-shadow(0 20px 40px rgba(37,99,235,0.15));
+
+
+}
+.overlap-image {
+    -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 12%,
+        black 88%,
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 12%,
+        black 88%,
+        transparent 100%
+    );
+}
+@keyframes float {
+    0%, 100% { transform: translateY(0) scale(1.08); }
+    50% { transform: translateY(-20px) scale(1.08); }
+}
+
+
+
+/* ================= FEATURE SPOTLIGHT (NEW) ================= */
+
+.feature-spotlight {
+    /* ✅ Changed top padding to 40px to pull content up */
+    padding: 40px 10% 100px 10%; 
+    background-color: #f0f7ff;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ================= SUBTLE BACKGROUND PATTERN ================= */
+
+.feature-spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("images/bg-dots.svg");
+  background-repeat: repeat;
+  opacity: 0.04;          /* 🔥 VERY IMPORTANT */
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Keep content above pattern */
+.feature-spotlight > * {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* One feature = one section */
+.feature-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 90px;
+    margin-bottom: 100px;
+}
+
+/* Reverse layout for alternate sections */
+.feature-row.reverse {
+    flex-direction: row-reverse;
+}
+
+/* Text area */
+.feature-text {
+    flex: 1;
+}
+
+.feature-tag {
+    display: inline-block;
+    background: #e0ecff;
+    color: var(--primary);
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+    font-size: 0.9rem;
+}
+
+.feature-text h2 {
+    font-size: 2.8rem;
+    line-height: 1.2;
+    margin-bottom: 18px;
+    color: #0f172a;
+}
+
+.feature-text p {
+    font-size: 1.05rem;
+    color: #475569;
+    max-width: 520px;
+    line-height: 1.7;
+}
+
+/* Image area */
+.feature-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.feature-image img {
+    width: 100%;
+    max-width: 440px;
+    filter: drop-shadow(0 30px 60px rgba(37,99,235,0.25));
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media (max-width: 1024px) {
+    .feature-row {
+        gap: 60px;
+    }
+}
+
+@media (max-width: 768px) {
+    .feature-row,
+    .feature-row.reverse {
+        flex-direction: column;
+        text-align: center;
+        gap: 40px;
+        margin-bottom: 100px;
+    }
+
+    .feature-text p {
+        margin: 0 auto;
+    }
+
+    .feature-text h2 {
+        font-size: 2.2rem;
+    }
+}
+
+
+/* How It Works (The Blue Box) */
+.step-card {
+    text-align: center;
+    padding: 20px;
+}
+
+
+/* Modals */
+.custom-modal, .feature-modal {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content, .feature-modal-content {
+    border-radius: 24px;
+    padding: 3rem;
+    border: none;
+}
+
+/* Footer */
+footer {
+    background: #0f172a;
+    color: #94a3b8;
+    padding: 60px 10%;
+    text-align: center;
+}
+
+.footer-links a {
+    color: white;
+    margin: 0 15px;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero { flex-direction: column; text-align: center; padding-top: 40px; }
+    .hero h1 { font-size: 2.5rem; }
+    .nav-links { display: none; }
+}
+
+/* ============================= */
+/* RESPONSIVE HERO FIX */
+/* ============================= */
+
+@media (max-width: 1024px) {
+    .hero {
+        padding: 60px 6%;
+        min-height: auto;
+    }
+
+    .hero-features {
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 700px;
+    }
+
+    .overlap-image {
+        max-width: 380px;
+    }
+}
+@media (max-width: 768px) {
+    .hero {
+        flex-direction: column;
+        text-align: center;
+        padding-top: 40px;
+    }
+
+    .hero-left {
+        transform: none;
+        margin-top: 0;
+    }
+
+    .hero h1 {
+        font-size: 2.4rem;
+        line-height: 1.2;
+    }
+
+     .hero-right {
+        transform: none;
+        margin-top: 40px;
+    } 
+
+    .overlap-image {
+        max-width: 320px;
+    }
+
+    .hero-features {
+        grid-template-columns: repeat(2, 1fr);
+        margin-top: 40px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .cta-btn-blue {
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero-features {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-features .feature-box {
+        text-align: left;
+    }
+}
+/* 🔥 HERO FEATURE BOX HOVER EFFECT */
+.hero-features .feature-box:hover {
+    transform: translateY(-12px) scale(1.08);
+    box-shadow: 0 30px 60px rgba(37, 99, 235, 0.25);
+}
+
+/* Icon animation on hover */
+.hero-features .icon {
+    transition: transform 0.35s ease;
+}
+
+.hero-features .feature-box:hover .icon {
+    transform: scale(1.15) rotate(3deg);
+}
+
+/* Optional: heading highlight */
+.hero-features .feature-box:hover h4 {
+    color: var(--primary);
+}
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  background: #2664eb;        /* light indigo */
+  color: #0c40d0;             /* dark blue text */
+  font-weight: 600;
+
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.user-btn:hover {
+  background: #c7d2fe;        /* slightly darker on hover */
+}
+
+/* ===== FORCE LIGHT BLUE BACKGROUND EVERYWHERE ===== */
+.features-section,
+.blue-box,
+.hero,
+body {
+  background-color: #f0f7ff !important;
+}
+/* ================= DECORATIVE BACKGROUND ================= */
+
+/* Apply on non-home pages only */
+.decorative-bg {
+  position: relative;
+  background-color: #f0f7ff;
+  overflow: hidden; /* Add this line */
+  z-index: 1;
+}
+
+/* Background graphics layer */
+.decorative-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    url("images/bg-chart.png"),
+    url("images/bg-bill.png"),
+    url("images/bg-graph.png");
+  background-repeat: no-repeat;
+  background-position:
+    left 8% top 25%,
+    right 10% center,
+    left 15% bottom 20%;
+  background-size:
+    220px,
+    180px,
+    260px;
+  opacity: 0.08;          /* 🔥 very important */
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Make sure content stays above background */
+.decorative-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ================= HALF PHONE EFFECT ================= */
+
+/* ================= HALF PHONE IMAGE ================= */
+
+
+
+.feature-image img {
+  width: 100%;
+  max-width: 350px;
+  transform: translateY(-50px);
+  background: transparent;
+  filter: drop-shadow(0 20px 40px rgba(37,99,235,0.15));
+}
+
+.feature-image img {
+    width: 80%;
+    max-width: 350px;
+    filter: drop-shadow(20px 20px 50px rgba(0,0,0,0.1));
+    animation: float 6s ease-in-out infinite;
+    
+    background: transparent;
+    border-radius: 40px;
+    filter: drop-shadow(0 20px 40px rgba(37,99,235,0.15));
+
+
+} 
+/* FIX MINI-CARD OVERLAP ISSUE */
+.feature-row {
+  position: relative;
+}
+
+/* ENSURE HOW IT WORKS IS ABOVE EVERYTHING */
+.how-it-works {
+  position: relative;
+  z-index: 3;
+}
+
+/* ================= FLOATING MINI CARDS ================= */
+
+.mini-card {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  box-shadow: 0 15px 35px rgba(37, 99, 235, 0.18);
+  white-space: nowrap;
+  z-index: 2;
+  animation: floatMini 5s ease-in-out infinite;
+}
+.mini-card {
+  opacity: 0.9;
+}
+
+/* Card Positions */
+/* ================= MINI CARD POSITIONS (FINAL) ================= */
+
+.card-top-left {
+  top: 18%;
+  left: -14px;
+}
+
+.card-top-left-2 {
+  top: 75%;
+  left: -14px;
+}
+
+.card-top-right {
+  top: 34%;
+  right: -14px;
+  animation-delay: 0.8s;
+}
+
+
+
+/* Floating motion */
+@keyframes floatMini {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* ================= MINI CARDS — EASY SCHEDULING ================= */
+
+.easy-scheduling .mini-card {
+  opacity: 0.85;
+}
+
+.card-left {
+  top: 40%;
+  left: 03%;
+}
+
+.card-right-top {
+  top: 10%;
+  right: 12%;
+  animation-delay: 1.5s;
+}
+
+.card-right-bottom {
+  bottom: 05%;
+  right: 12%;
+  animation-delay: 3s;
+}
+/* ================= MINI CARDS — PERSONALIZED MESSAGES ================= */
+.personalized-messages .mini-card {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
+}
+
+.card-left-soft {
+  top: -10%;
+  left: 6%;
+}
+
+.card-right-soft {
+  top: 108%;
+  right: 13%;
+  animation-delay: 1.8s;
+}
+
+.card-left-soft-2 {
+  bottom: -20%;
+  left: 6%;
+  animation-delay: 3.2s;
+}
+
+
+/* ================= MINI CARDS — EXPENSE TRACKING ================= */
+.expense-tracking .mini-card {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 25px 45px rgba(37, 99, 235, 0.18);
+}
+
+
+.card-exp-bottom-right {
+  bottom: -20%;
+  right: 10%;
+}
+
+.card-exp-mid {
+  top: 100%;
+  left: 13%;
+  animation-delay: 1.6s;
+}
+/* --- Professional How It Works Section --- */
+.how-it-works {
+  background-color: #F0F6FE;
+  padding: 6rem 1.5rem;
+  font-family: 'Inter', sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background decoration (optional subtle glow) */
+.how-it-works::before {
+  content: '';
+  position: absolute;
+  top: 0; /* Change this from -50% to 0 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, rgba(255,255,255,0) 70%);
+  z-index: 0;
+}
+
+.how-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.how-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.how-header h2 {
+  font-size: 2.5rem;
+  color: #0F172A;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+
+.how-header .subtitle {
+  font-size: 1.1rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+/* Grid System */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 2rem;
+}
+
+@media (min-width: 900px) {
+  .steps-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+/* --- THE CARDS (The Professional Part) --- */
+.step-card {
+  background: #FFFFFF;
+  border-radius: 20px; /* Smooth modern corners */
+  padding: 2.5rem 2rem;
+  text-align: center;
+  
+  /* Subtle border and shadow for depth */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 
+              0 10px 15px -3px rgba(0, 0, 0, 0.03);
+  
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  top: 0;
+}
+
+/* Hover Effect: Lift and stronger shadow */
+.step-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: rgba(37, 99, 235, 0.2); /* Slight blue border on hover */
+}
+
+/* Icon Area */
+.icon-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+}
+
+.icon-box {
+  width: 70px;
+  height: 70px;
+  background-color: #EFF6FF; /* Very light blue */
+  color: #2563EB; /* BillMate Blue */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.step-card:hover .icon-box {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  transform: scale(1.1) rotate(5deg); /* Playful interaction */
+}
+
+/* The Number Badge (1, 2, 3) */
+.step-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #0F172A; /* Dark Navy */
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #FFFFFF;
+  z-index: 10;
+}
+
+/* Typography */
+.step-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 0.75rem;
+}
+
+.step-card p {
+  color: #64748B;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+/* --- Professional Contact Section --- */
+.contact-section {
+    background-color: #0F172A; /* Dark Navy Background */
+    color: #FFFFFF;
+    padding: 6rem 1.5rem;
+    position: relative;
+}
+
+.contact-container {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+/* Desktop: Split layout */
+@media (min-width: 900px) {
+    .contact-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6rem;
+    }
+}
+
+/* Left Column Styling */
+.contact-info h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #FFFFFF;
+}
+
+.contact-desc {
+    color: #94A3B8; /* Muted text for dark mode */
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 3rem;
+    max-width: 450px;
+}
+
+.method-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.method-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1); /* Glassy effect */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38BDF8; /* Light Blue accent */
+}
+
+.method-text span {
+    display: block;
+    font-size: 0.85rem;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.method-text a, 
+.method-text p {
+    color: #FFFFFF;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-decoration: none;
+    margin-top: 2px;
+}
+
+/* Right Column: The Form Card */
+.contact-form-wrapper {
+    background: #FFFFFF;
+    padding: 2.5rem;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #0F172A;
+    margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 1rem;
+    color: #0F172A;
+    transition: all 0.2s;
+    background: #F8FAFC;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #2563EB;
+    background: #FFFFFF;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.submit-btn {
+    width: 100%;
+    background: #2563EB;
+    color: white;
+    padding: 1rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.submit-btn:hover {
+    background: #1D4ED8;
+}
+
+/* --- Simple Footer at Bottom --- */
+.footer-simple {
+    background-color: #020617; /* Even darker than contact section */
+    color: #64748B;
+    padding: 2rem 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.footer-simple .footer-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .footer-simple .footer-container {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+/* Safety fix for the top-right ghost box */
+header, .navbar {
+    z-index: 1001 !important; /* Forces Navbar to the very top */
+}
+
+.hero {
+    z-index: 10;
+}
+
+/* Container for User Pill + Dropdown */
+.user-profile-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Style the User Pill */
+.user-btn {
+    background: var(--primary);
+    color: white !important;
+    padding: 0.6rem 1.4rem;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.3s;
+}
+
+/* The Dropdown Menu (Hidden by default) */
+.user-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    min-width: 150px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    margin-top: 10px;
+    padding: 8px 0;
+    z-index: 3000;
+    border: 1px solid #e2e8f0;
+}
+
+/* Show dropdown on hover */
+.user-profile-wrapper:hover .user-dropdown {
+    display: block;
+    animation: navFadeIn 0.2s ease;
+}
+
+.user-dropdown a {
+    display: block;
+    padding: 10px 20px;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: 0.2s;
+}
+
+.user-dropdown a:hover {
+    background: #f0f7ff;
+    color: var(--primary);
+}
+
+/* Specific style for Logout */
+.logout-link {
+    color: #ef4444 !important; /* Red color */
+    border-top: 1px solid #f1f5f9;
+    margin-top: 5px;
+}

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BillMate - Never Miss a Bill Again</title>
+  
+  <!-- AOS CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a href="index.html" class="logo">
+    <img src="icons/invoice.png" alt="BillMate icon" class="logo-icon" />
+    <span>BillMate</span>
+  </a>
+
+  <div class="nav-right">
+    <ul class="nav-links">
+      <li><a href="#home" class="active">Home</a></li>
+
+      <!-- Features Dropdown -->
+      <li class="dropdown">
+        <a href="#features" class="dropbtn">Features</a>
+        <div class="dropdown-content">
+          <a href="#feature-reminders">Automated Reminders</a>
+          <a href="#feature-scheduling">Easy Scheduling</a>
+          <a href="#feature-messages">Personalized Messages</a>
+          <a href="#feature-expense">Expense Tracking</a>
+        </div>
+      </li>
+
+      <li><a href="#how">How It Works</a></li>
+      <li><a href="#contact">Contact</a></li>
+
+      <li id="auth-area">
+        <a href="login.html" class="login-btn" id="authBtn">Login</a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero" id="home">
+  <div class="hero-left" data-aos="fade-right">
+    <h1>Never Miss a <br><span class="highlight">Bill</span> Again</h1>
+    <p>Manage, track, and pay your bills with ease using the world's most intuitive bill reminder system.</p>
+    <a href="signup.html" class="cta-btn-blue">Get Started Now</a>
+    <p style="margin-top: 15px; font-size: 0.8rem; color: var(--text-muted);">Simple, secure & free to get started.</p>
+
+    <div class="hero-features">
+      <div class="feature-box">
+        <div class="icon blue">📋</div>
+        <h4>Manage Bills</h4>
+        <p>Easily track all your due bills in one place.</p>
+      </div>
+      <div class="feature-box">
+        <div class="icon yellow">⏰</div>
+        <h4>Bill Reminders</h4>
+        <p>Get timely reminders for upcoming due dates.</p>
+      </div>
+      <div class="feature-box">
+        <div class="icon red">💳</div>
+        <h4>Pay Bills</h4>
+        <p>Quickly and securely pay your bills online.</p>
+      </div>
+      <div class="feature-box">
+        <div class="icon multi">📊</div>
+        <h4>Expense Tracking</h4>
+        <p>Categorize and monitor your monthly expenses.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right" data-aos="fade-left">
+    <img class="overlap-image" src="icons/bill4.png" alt="App Preview" />
+  </div>
+</section>
+
+<!-- FEATURES SECTION -->
+<section class="feature-spotlight" id="features">
+
+  <!-- Feature 1 -->
+  <div class="feature-row" id="feature-reminders" data-aos="fade-up">
+    <div class="feature-text">
+      <span class="feature-tag">Automated Reminders</span>
+      <h2>Never miss a bill again</h2>
+      <p>BillMate automatically sends reminders via email, SMS, or app notifications so you always pay on time and avoid late fees.</p>
+    </div>
+    <div class="mini-card card-top-left">🔔 Electricity bill due in <strong>2 hours</strong></div>
+    <div class="feature-image half-phone">
+      <img src="icons/feature-reminder.png" alt="Automated bill reminders">
+    </div>
+    <div class="mini-card card-top-right">💳 $6,748 remaining</div>
+    <div class="mini-card card-top-left-2">📅 12 bills due this week</div>
+  </div>
+
+  <!-- Feature 2 -->
+  <div class="feature-row reverse" id="feature-scheduling" data-aos="fade-up">
+    <div class="feature-text">
+      <span class="feature-tag">Easy Scheduling</span>
+      <h2>Flexible billing that fits your life</h2>
+      <p>Set monthly, weekly, or custom billing cycles. Adjust schedules anytime with just a few clicks.</p>
+    </div>
+    <div class="feature-image half-phone">
+      <img src="icons/feature-scheduling.png" alt="Bill scheduling">
+    </div>
+    <div class="mini-card card-left">📆 Weekly billing enabled</div>
+    <div class="mini-card card-right-top">🔁 Schedule edited in 2 clicks</div>
+    <div class="mini-card card-right-bottom">⏰ Next bill auto-scheduled</div>
+  </div>
+
+  <!-- Feature 3 -->
+  <div class="feature-row" id="feature-messages" data-aos="fade-up">
+    <div class="feature-text">
+      <span class="feature-tag">Personalized Messages</span>
+      <h2>Reminders that feel personal</h2>
+      <p>Customize reminders with names, emojis, and friendly messages so they feel helpful—not annoying.</p>
+    </div>
+    <div class="feature-image half-phone">
+      <img src="icons/feature-message.png" alt="Personalized reminders">
+    </div>
+    <div class="mini-card card-left-soft">😊 “Hey User! Rent is due tomorrow”</div>
+    <div class="mini-card card-right-soft">✏️ Custom names & emojis</div>
+    <div class="mini-card card-left-soft-2">💬 Friendly reminder tone</div>
+  </div>
+
+  <!-- Feature 4 -->
+  <div class="feature-row reverse" id="feature-expense" data-aos="fade-up">
+    <div class="feature-text">
+      <span class="feature-tag">Expense Tracking</span>
+      <h2>Know exactly where your money goes</h2>
+      <p>Track all your expenses in one place with clear charts and insights. BillMate helps you understand spending patterns.</p>
+    </div>
+    <div class="feature-image">
+      <img src="icons/feature-expense.png" alt="Expense tracking">
+    </div>
+    <div class="mini-card card-exp-bottom-right">📉 Spending down 12% this week</div>
+    <div class="mini-card card-exp-mid">📊 Top category: Food ₹2,150</div>
+  </div>
+
+</section>
+
+<!-- Rest of sections (How it works, Contact, Footer) stay the same -->
+<!-- ... (Keep your How it Works, Contact, and Footer code here) ... -->
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="script.js"></script>
+  <script>
+    AOS.init({ duration: 900, once: true });
+  </script>
+</body>
+</html>
+
+<!-- How It Works Section -->
+<section class="how-it-works" id="how">
+  <div class="how-container">
+    <div class="how-header" data-aos="fade-up">
+      <h2>How BillMate Works</h2>
+      <p class="subtitle">Set it once. Relax forever.</p>
+    </div>
+
+    <!-- REPLACE YOUR EXISTING .steps-grid DIV WITH THIS -->
+<div class="steps-grid">
+  
+  <!-- Step 1 -->
+  <div class="step-card" data-aos="fade-up" data-aos-delay="100">
+    <div class="icon-wrapper">
+      <div class="step-badge">1</div>
+      <div class="icon-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+      </div>
+    </div>
+    <h3>Connect Accounts</h3>
+    <p>Securely link your accounts or add bills manually. We organize everything in one dashboard.</p>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step-card" data-aos="fade-up" data-aos-delay="200">
+    <div class="icon-wrapper">
+      <div class="step-badge">2</div>
+      <div class="icon-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+    </div>
+    <h3>Set Schedule</h3>
+    <p>Set your due dates and reminder preferences. Choose when and how you want to be notified.</p>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step-card" data-aos="fade-up" data-aos-delay="300">
+    <div class="icon-wrapper">
+      <div class="step-badge">3</div>
+      <div class="icon-box">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      </div>
+    </div>
+    <h3>Relax Forever</h3>
+    <p>We monitor your bills and alert you on time. No more late fees, no more stress.</p>
+  </div>
+
+</div>
+  </div>
+</section>
+<!-- Professional Contact Section -->
+<section class="contact-section" id="contact">
+  <div class="contact-container">
+    <div class="contact-grid">
+      
+      <!-- Left Column: Text & Info -->
+      <div class="contact-info" data-aos="fade-right">
+        <h2>Let’s talk about your bills</h2>
+        <p class="contact-desc">
+          Have a question about BillMate? Need help setting up a complex schedule? 
+          Our support team is ready to help you relax.
+        </p>
+
+        <div class="contact-methods">
+          <!-- Email Item -->
+          <div class="method-item">
+            <div class="method-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <div class="method-text">
+              <span>Email us</span>
+              <a href="mailto:support@billmate.com">support@billmate.com</a>
+            </div>
+          </div>
+
+          <!-- Location Item -->
+          <div class="method-item">
+            <div class="method-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="method-text">
+              <span>Headquarters</span>
+              <p>Mumbai, India</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: The Form -->
+      <div class="contact-form-wrapper" data-aos="fade-up" data-aos-delay="200">
+        <form class="contact-form">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" placeholder="John Doe" required>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" placeholder="john@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" rows="4" placeholder="How can we help you?" required></textarea>
+          </div>
+
+          <button type="submit" class="submit-btn">Send Message</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Small Copyright Footer -->
+<footer class="footer-simple">
+  <div class="footer-container">
+    <p>&copy; 2025 BillMate. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Support</a>
+    </div>
+  </div>
+</footer>
+
+ 
+
+
+
+  <!-- Script -->
+  <script>
+    function openModal(id) {
+      document.getElementById(id).style.display = "block";
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+  </script>
+
+  <script src="script.js"></script>
+  <!-- Script -->
+  <script>
+    function openModal(id) {
+      document.getElementById(id).style.display = "block";
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+  </script>
+
+  <script src="script.js"></script>
+
+  <!-- Initialize AOS HERE, after content is loaded -->
+  <script>
+    AOS.init({
+      duration: 900,
+      once: true
+    });
+  </script>
+</body>
+</html>
+</body>
+</html>

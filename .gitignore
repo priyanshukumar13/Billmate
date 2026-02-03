@@ -1,0 +1,13 @@
+# VS Code
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+database.db
+
+# Environment
+.env
+
+# OS
+.DS_Store

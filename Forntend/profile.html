@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Profile | BillMate</title>
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+
+  <div class="profile-container">
+
+    <!-- User Card -->
+    <div class="profile-card">
+      <img src="icons/user-avatar.png" class="profile-avatar" alt="User">
+
+      <h2 id="userName">User Name</h2>
+      <p id="userEmail">user@email.com</p>
+
+      <button class="edit-btn">Edit Profile</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>Total Bills</h3>
+        <span>12</span>
+      </div>
+      <div class="stat-card">
+        <h3>Paid</h3>
+        <span>8</span>
+      </div>
+      <div class="stat-card">
+        <h3>Upcoming</h3>
+        <span>3</span>
+      </div>
+      <div class="stat-card overdue">
+        <h3>Overdue</h3>
+        <span>1</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="profile.js"></script>
+</body>
+</html>

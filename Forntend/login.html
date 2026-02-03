@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | BillMate</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="login.css">
+</head>
+
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-animation"></div>
+
+  <!-- Login Card -->
+  <div class="login-wrapper">
+    <div class="login-card">
+      <h2>Welcome Back</h2>
+      <p>Login to manage your bills smartly</p>
+
+      <form autocomplete="off">
+
+        <div class="input-group">
+          <input id="loginUsername" type="text" required />
+          <label>Username</label>
+        </div>
+
+        <div class="input-group">
+          <input id="loginEmail" type="email" required />
+          <label>Email</label>
+        </div>
+
+        <div class="input-group">
+          <input id="loginPassword" type="password" required />
+          <label>Password</label>
+        </div>
+
+        <!-- Important: type="button" -->
+        <button type="button" id="loginBtn">Login</button>
+
+        <span class="divider">or</span>
+
+        <a href="signup.html" class="signup-link">
+          Create new account
+        </a>
+
+      </form>
+    </div>
+  </div>
+
+ <!-- Inside login.html, at the bottom -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+<!-- Load the Helper First -->
+<script src="auth.js"></script> 
+
+<!-- Then Load the Login Logic -->
+<script src="login.js"></script> 
+
+</body>
+</html>

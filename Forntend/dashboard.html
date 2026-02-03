@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillMate Dashboard</title>
+
+    <link rel="stylesheet" href="dashboard-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo-area">📑 BillMate</div>
+
+        <nav class="side-nav">
+            <a href="dashboard.html" class="active">Dashboard</a>
+            <a href="calendar.html">Calendar</a>
+            <a href="expenses.html">Expenses</a>
+            <a href="settings.html">Settings</a>
+        </nav>
+
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+        <div id="alert-container"></div>
+
+        <div class="header-section">
+            <h1>Welcome back, <span id="userName">User</span>!</h1>
+            
+            <!-- ADDED ACTION BOX HERE -->
+            <div class="header-actions">
+                <a href="index.html" class="btn-home" title="Go to Home Page">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </a>
+                <button class="btn-budget-settings" id="openBudgetBtn">Set Monthly Budget</button>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="card"><h3>Total Budget</h3><p id="display-budget">₹0</p></div>
+            <div class="card"><h3>Total Spent</h3><p id="display-paid">₹0</p></div>
+            <div class="card"><h3>Total Due</h3><p id="display-due">₹0</p></div>
+            <div class="card highlight">
+                <h3>Remaining</h3>
+                <p id="display-balance">₹0</p>
+                <small id="budget-msg">Calculating...</small>
+            </div>
+        </div>
+
+        <!-- VISUAL -->
+        <div class="visual-grid">
+            <div class="card">
+                <h3>Expense Breakdown</h3>
+                <div id="expenses-chart" class="pie-chart"></div>
+            </div>
+
+            <div class="card">
+                <h3>Budget Health</h3>
+                <div class="progress-container">
+                    <div id="budget-progress" class="progress-bar"></div>
+                </div>
+                <p>You used <span id="percent-used">0%</span></p>
+            </div>
+        </div>
+
+        <!-- FORM -->
+        <div class="bottom-grid">
+            <div class="card">
+                <h3>Add New Bill</h3>
+                <form id="add-bill-form">
+                    <input id="bill-name" placeholder="Bill Name" required>
+                    <input id="bill-amount" type="number" placeholder="Amount" required>
+                    <input id="bill-date" type="date" required>
+
+                    <select id="bill-category" required>
+                        <option value="Rent">Rent</option>
+                        <option value="Food">Food</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Other">Other</option>
+                    </select>
+
+                    <button type="submit">Add Bill</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Recent Transactions</h3>
+                <ul id="bill-list"></ul>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL -->
+<div id="budgetModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+        <h3>Update Monthly Budget</h3>
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 15px;">Enter your total limit for this month.</p>
+        
+        <input id="new-budget-input" type="number" placeholder="Enter amount (e.g. 20000)">
+        
+        <div class="modal-actions">
+            <button id="saveBudgetBtn" class="btn-save">Save Budget</button>
+            <button id="closeBudgetBtn" class="btn-cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="dashboard.js"></script>
+
+</body>
+</html>

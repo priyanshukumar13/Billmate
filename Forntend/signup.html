@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up | BillMate</title>
+  <link rel="stylesheet" href="signup.css">
+</head>
+<body>
+
+  <!-- Animated Background -->
+  <div class="bg-animation"></div>
+
+  <!-- Signup Card -->
+  <div class="login-wrapper">
+    <div class="login-card">
+      <h2>Create Account ✨</h2>
+      <p>Join BillMate and never miss a bill again</p>
+
+      <form>
+        <div class="input-group">
+          <input id="fullName" type="text" required />
+          <label>Full Name</label>
+        </div>
+
+        <div class="input-group">
+          <input id="signupEmail" type="email" required />
+          <label>Email</label>
+        </div>
+
+        <div class="input-group">
+          <input id="signupPassword" type="password" required />
+          <label>Password</label>
+        </div>
+
+        <button type="button" id="signupBtn">Create Account</button>
+
+        <span class="divider">or</span>
+
+        <a href="login.html" class="signup-link">Already have an account? Login</a>
+      </form>
+    </div>
+  </div>
+
+  <script src="signup.js"></script>
+</body>
+</html>

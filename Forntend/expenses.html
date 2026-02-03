@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillMate - Expense Analytics</title>
+
+    <link rel="stylesheet" href="dashboard-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="app-container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo-area">📑 BillMate</div>
+        <nav class="side-nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="calendar.html">Calendar</a>
+            <a href="expenses.html" class="active">Expenses</a>
+            <a href="settings.html">Settings</a>
+        </nav>
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="header-section">
+            <div>
+                <h1>Expense Analytics</h1>
+                <p style="color:#64748b;">Detailed breakdown of your spending for this month</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="card stat-card highlight">
+                <h3>Highest Bill This Month</h3>
+                <p class="amount" id="highest-bill-amt">₹0</p>
+                <small id="highest-bill-name">None</small>
+            </div>
+
+            <div class="card stat-card">
+                <h3>Average per Bill</h3>
+                <p class="amount" id="avg-bill-amt">₹0</p>
+            </div>
+
+            <div class="card stat-card">
+                <h3>Total Monthly Paid</h3>
+                <p class="amount text-success" id="total-paid-amt">₹0</p>
+            </div>
+
+            <div class="card stat-card">
+                <h3>Bills Count</h3>
+                <p class="amount" id="total-bills-count">0</p>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="visual-grid">
+            <div class="card">
+                <h3>Spending per Category</h3>
+                <div style="height:300px;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Individual Bill Comparison</h3>
+                <div style="height:300px;">
+                    <canvas id="billBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ✅ SCRIPTS (ORDER MATTERS) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="auth.js"></script>
+<script>
+  (async () => {
+    const user = await verifyAuthOrRedirect();
+    if (!user) window.location.href = 'login.html';
+  })();
+</script>
+<script src="expenses.js"></script>
+
+</body>
+</html>
