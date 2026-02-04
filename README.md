@@ -159,6 +159,12 @@ This system is extendable to:
 🎓 B.Tech CSE | Full-Stack & Cloud Enthusiast
 🏫 Lovely Professional University
 
+
+🔗 Live Demo
+Frontend-only website hosted on Netlify:  
+https://billmatex.netlify.app/
+
+
 * GitHub: [https://github.com/priyanshukumar13](https://github.com/priyanshukumar13)
 * LinkedIn: [https://www.linkedin.com/in/priyanshu-kumar-2523672a2](https://www.linkedin.com/in/priyanshu-kumar-2523672a2)
 
