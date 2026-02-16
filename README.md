@@ -160,8 +160,7 @@ This system is extendable to:
 🏫 Lovely Professional University
 
 
-🔗 Live Demo
-Frontend-only website hosted on Netlify:  
+🔗 Live Demo  
 https://billmatex.netlify.app/
 
 
