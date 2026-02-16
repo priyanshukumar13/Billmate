@@ -39,7 +39,7 @@
 =============================== */
 function runDashboardLogic(apiUser) {
     const $ = id => document.getElementById(id);
-    const API_URL = "http://localhost:5000/api/bills";
+    const API_URL = "https://billmate-backend.onrender.com/api/bills";
     
     // Load budget from localStorage or default to 20000
     let userBudget = Number(localStorage.getItem("userBudget")) || 20000;
@@ -198,7 +198,7 @@ function runDashboardLogic(apiUser) {
         const userEmail = localStorage.getItem('billmateUser'); 
         if (emailAlerts.length > 0 && userEmail && !sessionStorage.getItem('emailSent')) {
             try {
-                await fetch("http://localhost:5000/api/bills/send-immediate-alert", {
+                await fetch("https://billmate-backend.onrender.com/api/bills/send-immediate-alert", {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ email: userEmail, alerts: emailAlerts })

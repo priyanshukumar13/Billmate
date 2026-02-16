@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const $ = id => document.getElementById(id);
-    const API_URL = "http://localhost:5000/api/bills";
+    const API_URL = "https://billmate-backend.onrender.com/api/bills";
     
     // State
     let currentDate = new Date();

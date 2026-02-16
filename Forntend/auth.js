@@ -1,5 +1,5 @@
 // Point this to your running server
-const API_BASE_URL = "http://127.0.0.1:5000/api/auth";
+const API_BASE_URL = "https://billmate-backend.onrender.com/api/auth";
 
 // Function to Log In
 async function loginUser(email, password) {

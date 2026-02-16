@@ -70,10 +70,7 @@ function isFormValid() {
 
 // 🟢 Login click handler
 function getBaseURL() {
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') {
-    return 'http://localhost:5000/api/auth';
-  }
-  return '/api/auth';
+  return 'https://billmate-backend.onrender.com/api/auth';
 }
 const BASE_URL = getBaseURL();
 console.log('Auth BASE_URL =', BASE_URL);
