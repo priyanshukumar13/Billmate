@@ -5,7 +5,7 @@
     --border: #e2e8f0;
 }
 
-body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; color: var(--text); }
 
 .app-container { display: flex; min-height: 100vh; }
 
@@ -38,3 +38,57 @@ input:checked + .slider:before { transform: translateX(20px); }
 .btn-primary { background: var(--primary); color: white; border: none; padding: 14px 30px; border-radius: 10px; font-weight: 600; cursor: pointer; }
 .btn-danger { background: #fff1f2; color: #ef4444; border: 1px solid #fecaca; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
 .btn-logout { width: 100%; padding: 10px; background: #fff1f2; color: #ef4444; border: none; border-radius: 8px; cursor: pointer; }
+
+/* Dark theme overrides using body class */
+body.theme-dark {
+    --bg: #020617;
+    --text: #e5e7eb;
+    --border: #111827;
+    background: #020617;
+    color: #e5e7eb;
+}
+
+body.theme-dark .sidebar {
+    background: #020617;
+    border-right-color: #111827;
+}
+
+body.theme-dark .logo-area {
+    color: #e5e7eb;
+}
+
+body.theme-dark .side-nav a {
+    color: #9ca3af;
+}
+
+body.theme-dark .side-nav a.active {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+body.theme-dark .card {
+    background: #020617;
+    border-color: #1f2937;
+}
+
+body.theme-dark .form-group input,
+body.theme-dark .form-group select {
+    background: #020617;
+    border-color: #1f2937;
+    color: #e5e7eb;
+}
+
+body.theme-dark .form-group label {
+    color: #9ca3af;
+}
+
+body.theme-dark .btn-primary {
+    background: #4f46e5;
+}
+
+body.theme-dark .btn-danger,
+body.theme-dark .btn-logout {
+    background: #7f1d1d;
+    color: #fecaca;
+    border-color: #b91c1c;
+}

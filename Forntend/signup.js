@@ -23,11 +23,8 @@ signupBtn.addEventListener('mouseleave', () => {
   }
 });
 
-/* 🌐 API URL logic */
-function getBaseURL() {
-  return 'https://billmate-backend.onrender.com/api/auth';
-}
-const BASE_URL = getBaseURL();
+/* 🌐 API URL logic (Flask backend) */
+const BASE_URL = 'http://127.0.0.1:5000';
 
 /* ✅ Main Signup Logic */
 let signupProcessing = false;
@@ -55,31 +52,25 @@ signupBtn.addEventListener('click', async (e) => {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: name, email, password })
+      body: JSON.stringify({ name, email, password })
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data?.msg || `Signup failed (status ${res.status})`);
+      alert(data?.message || `Signup failed (status ${res.status})`);
       signupProcessing = false;
       signupBtn.disabled = false;
       signupBtn.innerText = "Signup";
       return;
     }
 
-    /* ==================================================
-       🚀 AUTO-LOGIN LOGIC
-       Save token and email so Dashboard recognizes user
-       ================================================== */
-    if (data.token) {
-        localStorage.setItem('authToken', data.token);
-    }
+    // Auto-login into dashboard after signup
     localStorage.setItem("billmateUser", email);
 
-    alert('Signup successful! Welcome to BillMate.');
+    alert('Signup successful! Redirecting to your dashboard.');
 
-    // ✅ REDIRECT TO DASHBOARD (NOT LOGIN)
+    // Redirect to dashboard
     setTimeout(() => {
         window.location.href = "dashboard.html";
     }, 150);

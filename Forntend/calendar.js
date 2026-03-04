@@ -1,23 +1,22 @@
 document.addEventListener("DOMContentLoaded", async () => {
     /* ===============================
-       🔐 1. AUTH CHECK
+       🔐 1. SIMPLE AUTH CHECK (FLASK)
     =============================== */
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
-        window.location.href = 'login.html'; // Consistent with dashboard
+    const userEmail = localStorage.getItem('billmateUser');
+    if (!userEmail) {
+        window.location.href = 'login.html';
         return;
     }
 
     const $ = id => document.getElementById(id);
-    const API_URL = "https://billmate-backend.onrender.com/api/bills";
+    const API_URL = "http://127.0.0.1:5000/api/bills";
     
     // State
     let currentDate = new Date();
     let bills = []; 
 
     const getAuthHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        'Content-Type': 'application/json'
     });
 
     /* ===============================

@@ -68,11 +68,8 @@ function isFormValid() {
   );
 }
 
-// 🟢 Login click handler
-function getBaseURL() {
-  return 'https://billmate-backend.onrender.com/api/auth';
-}
-const BASE_URL = getBaseURL();
+// 🟢 Login click handler (Flask backend)
+const BASE_URL = 'http://127.0.0.1:5000';
 console.log('Auth BASE_URL =', BASE_URL);
 
 let loginProcessing = false;
@@ -110,32 +107,9 @@ loginBtn.addEventListener('click', async (e) => {
 
     const data = await res.json();
     console.log('Login response:', data);
-    if (data.token) localStorage.setItem('authToken', data.token);
-    localStorage.setItem("billmateUser", email);
-
-    // Verify token before navigating to dashboard to prevent flash/redirect
-    try {
-      const v = await fetch(`${BASE_URL}/me`, { headers: { 'Authorization': `Bearer ${data.token}` } });
-      if (v.ok) {
-        window.location.href = "dashboard.html";
-        return;
-      } else {
-        let vd;
-        try { vd = await v.json(); } catch (e) { vd = null; }
-        alert('Login verification failed: ' + (vd?.msg || `status ${v.status}`));
-        localStorage.removeItem('authToken');
-        loginProcessing = false;
-        loginBtn.disabled = false;
-        return;
-      }
-    } catch (err) {
-      console.error('Token verify error', err);
-      alert('Network error while verifying token. Try again.');
-      localStorage.removeItem('authToken');
-      loginProcessing = false;
-      loginBtn.disabled = false;
-      return;
-    }
+    // Flask backend returns message + user info; no token.
+    localStorage.setItem("billmateUser", data.email || email);
+    window.location.href = "dashboard.html";
 
   } catch (err) {
     console.error('Login network error', err);

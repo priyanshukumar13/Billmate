@@ -1,36 +1,21 @@
 /* ===============================
-   🔐 1. IMMEDIATE AUTH CHECK
+   🔐 1. SIMPLE AUTH CHECK (FLASK)
 =============================== */
-(async function initDashboard() {
-    const authToken = localStorage.getItem('authToken');
-    if (!authToken) {
+(function initDashboard() {
+    const userEmail = localStorage.getItem('billmateUser');
+    if (!userEmail) {
         window.location.href = 'login.html';
         return;
     }
 
-    let apiUser = null;
-    try {
-        if (typeof verifyAuthOrRedirect === 'function') {
-            const user = await verifyAuthOrRedirect();
-            if (!user) throw new Error("Invalid token");
-            apiUser = user;
-            
-            if (apiUser && apiUser.username) {
-               if(document.getElementById('userName')) document.getElementById('userName').textContent = apiUser.username;
-               if (apiUser.email) localStorage.setItem('billmateUser', apiUser.email);
-            }
-        }
-    } catch (err) {
-        console.error('Auth verification failed:', err);
-        localStorage.removeItem('authToken');
-        window.location.href = 'login.html';
-        return;
+    if (document.getElementById('userName')) {
+        document.getElementById('userName').textContent = userEmail;
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => runDashboardLogic(apiUser));
+        document.addEventListener('DOMContentLoaded', () => runDashboardLogic(userEmail));
     } else {
-        runDashboardLogic(apiUser);
+        runDashboardLogic(userEmail);
     }
 })();
 
@@ -39,15 +24,15 @@
 =============================== */
 function runDashboardLogic(apiUser) {
     const $ = id => document.getElementById(id);
-    const API_URL = "https://billmate-backend.onrender.com/api/bills";
+    // Point to local Flask backend
+    const API_URL = "http://127.0.0.1:5000/api/bills";
     
     // Load budget from localStorage or default to 20000
     let userBudget = Number(localStorage.getItem("userBudget")) || 20000;
     let bills = []; 
 
     const getAuthHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        'Content-Type': 'application/json'
     });
 
     // --- FETCH BILLS FROM DATABASE ---
@@ -111,6 +96,9 @@ function runDashboardLogic(apiUser) {
         list.innerHTML = bills.length ? "" : "<p style='padding:20px;color:#64748b;'>No transactions.</p>";
 
         bills.slice().reverse().forEach(bill => {
+            // Handle both plain string _id and MongoDB extended JSON {_id: {$oid: "..."}}
+            const id = bill._id && bill._id.$oid ? bill._id.$oid : bill._id;
+
             const li = document.createElement("li");
             li.className = "bill-item";
             li.innerHTML = `
@@ -121,10 +109,10 @@ function runDashboardLogic(apiUser) {
                 <div class="bill-actions">
                     <strong>₹${bill.amount}</strong>
                     <button class="btn-status ${bill.status === "Paid" ? "paid" : ""}"
-                        onclick="toggleBill('${bill._id}')">
+                        onclick="toggleBill('${id}')">
                         ${bill.status === "Paid" ? "Paid" : "Pay"}
                     </button>
-                    <button class="btn-delete" onclick="deleteBill('${bill._id}')">🗑️</button>
+                    <button class="btn-delete" onclick="deleteBill('${id}')">🗑️</button>
                 </div>`;
             list.appendChild(li);
         });
@@ -194,11 +182,11 @@ function runDashboardLogic(apiUser) {
             }
         });
 
-        // Send Email if alerts exist and haven't been sent this session
-        const userEmail = localStorage.getItem('billmateUser'); 
+        // Trigger backend email alert if configured
+        const userEmail = localStorage.getItem('billmateUser');
         if (emailAlerts.length > 0 && userEmail && !sessionStorage.getItem('emailSent')) {
             try {
-                await fetch("https://billmate-backend.onrender.com/api/bills/send-immediate-alert", {
+                await fetch("http://127.0.0.1:5000/api/bills/send-immediate-alert", {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ email: userEmail, alerts: emailAlerts })
@@ -261,3 +249,141 @@ function runDashboardLogic(apiUser) {
     // Initial load
     fetchBills();
 }
+
+// ===========================
+//  SMART PAY ASSISTANT LOGIC
+// ===========================
+
+document.addEventListener('DOMContentLoaded', () => {
+    const suggestBtn = document.getElementById('assistant-suggest');
+    const laterBtn = document.getElementById('assistant-later');
+    const messagesBox = document.getElementById('assistant-messages');
+
+    if (!suggestBtn || !laterBtn || !messagesBox) return;
+
+    function addMessage(text, who = 'bot') {
+        const div = document.createElement('div');
+        div.className = `assistant-message assistant-${who}`;
+        div.textContent = text;
+        messagesBox.appendChild(div);
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    // We reuse the global bills array inside runDashboardLogic via window.latestBills
+    window.latestBills = window.latestBills || [];
+
+    // Hook into fetchBills by monkey-patching if available
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+        const res = await originalFetch(...args);
+        try {
+            const url = args[0];
+            if (typeof url === 'string' && url.includes('/api/bills') && res.ok) {
+                const clone = res.clone();
+                const data = await clone.json();
+                if (Array.isArray(data)) {
+                    window.latestBills = data;
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+        return res;
+    };
+
+    function computeAdvice(mode = 'now') {
+        const bills = (window.latestBills || []).filter(b => b.status === 'Unpaid' || b.status === "Unpaid");
+        if (bills.length === 0) {
+            addMessage("Nice! You have no unpaid bills at the moment.", 'bot');
+            return;
+        }
+
+        // Normalize dates and sort by due date
+        bills.forEach(b => {
+            if (b.date) {
+                const d = new Date(b.date);
+                b._dueDateObj = isNaN(d.getTime()) ? null : d;
+            } else {
+                b._dueDateObj = null;
+            }
+        });
+
+        bills.sort((a, b) => {
+            if (a._dueDateObj && b._dueDateObj) return a._dueDateObj - b._dueDateObj;
+            if (a._dueDateObj) return -1;
+            if (b._dueDateObj) return 1;
+            return (Number(b.amount) || 0) - (Number(a.amount) || 0);
+        });
+
+        const userBudget = Number(localStorage.getItem('userBudget')) || 20000;
+        const toPayNow = [];
+        const toPayLater = [];
+
+        let running = 0;
+        const today = new Date();
+
+        bills.forEach(b => {
+            const amt = Number(b.amount) || 0;
+            const days =
+                b._dueDateObj
+                    ? Math.ceil((b._dueDateObj.setHours(0,0,0,0) - today.setHours(0,0,0,0)) / 86400000)
+                    : null;
+
+            const item = { name: b.name, amount: amt, days };
+
+            if (mode === 'now') {
+                if (days !== null && days <= 3) {
+                    running += amt;
+                    if (running <= userBudget * 0.6) {
+                        toPayNow.push(item);
+                    } else {
+                        toPayLater.push(item);
+                    }
+                } else {
+                    toPayLater.push(item);
+                }
+            } else {
+                // planning mode
+                if (days !== null && days <= 7) {
+                    toPayNow.push(item);
+                } else {
+                    toPayLater.push(item);
+                }
+            }
+        });
+
+        const formatList = list =>
+            list
+                .map(i => {
+                    const when =
+                        i.days === null
+                            ? ''
+                            : i.days === 0
+                            ? ' (due today)'
+                            : i.days < 0
+                            ? ` (overdue by ${Math.abs(i.days)} days)`
+                            : ` (due in ${i.days} days)`;
+                    return `• ${i.name} – ₹${i.amount}${when}`;
+                })
+                .join('\n');
+
+        if (toPayNow.length) {
+            addMessage(
+                `You should prioritize:\n${formatList(toPayNow)}\n\nThis keeps you within roughly 60% of your monthly budget (₹${userBudget}).`,
+                'bot'
+            );
+        } else {
+            addMessage("All your upcoming bills look manageable within your current budget window.", 'bot');
+        }
+
+        if (toPayLater.length) {
+            addMessage(
+                `Then you can schedule these for later:\n${formatList(toPayLater)}`,
+                'bot'
+            );
+        }
+    }
+
+    suggestBtn.onclick = () => computeAdvice('now');
+    laterBtn.onclick = () => computeAdvice('later');
+});

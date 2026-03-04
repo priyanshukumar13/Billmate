@@ -56,6 +56,11 @@ document.addEventListener("DOMContentLoaded", () => {
     $("budgetLimit").value = settings.budget;
     $("darkModeToggle").checked = settings.darkMode;
 
+    // Apply theme immediately based on saved preference
+    if (window.setBillmateTheme) {
+        setBillmateTheme(settings.darkMode ? "dark" : "light");
+    }
+
     /* ===============================
        💾 SAVE SETTINGS
     =============================== */
@@ -68,8 +73,10 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         localStorage.setItem("userSettings", JSON.stringify(newSettings));
+        if (window.setBillmateTheme) {
+            setBillmateTheme(newSettings.darkMode ? "dark" : "light", true);
+        }
         alert("Settings saved successfully! ✓");
-        window.location.reload();
     };
 
     /* ===============================

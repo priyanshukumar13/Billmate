@@ -695,18 +695,39 @@ body {
 
 .card-top-left {
   top: 18%;
-  left: -14px;
+  left: -6%;
 }
 
 .card-top-left-2 {
-  top: 75%;
-  left: -14px;
+  top: 72%;
+  left: -4%;
 }
 
 .card-top-right {
-  top: 34%;
-  right: -14px;
+  top: 30%;
+  right: -4%;
   animation-delay: 0.8s;
+}
+
+@media (max-width: 768px) {
+  .mini-card {
+    transform: scale(0.9);
+  }
+
+  .card-top-left {
+    top: 10%;
+    left: 4%;
+  }
+
+  .card-top-right {
+    top: 12%;
+    right: 4%;
+  }
+
+  .card-top-left-2 {
+    top: 82%;
+    left: 4%;
+  }
 }
 
 

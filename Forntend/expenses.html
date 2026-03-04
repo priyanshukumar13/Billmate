@@ -78,13 +78,7 @@
 
 <!-- ✅ SCRIPTS (ORDER MATTERS) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="auth.js"></script>
-<script>
-  (async () => {
-    const user = await verifyAuthOrRedirect();
-    if (!user) window.location.href = 'login.html';
-  })();
-</script>
+<script src="theme.js"></script>
 <script src="expenses.js"></script>
 
 </body>

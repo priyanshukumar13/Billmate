@@ -87,13 +87,32 @@
                         <option value="Other">Other</option>
                     </select>
 
-                    <button type="submit">Add Bill</button>
+                    <button type="submit" class="btn-add-bill">Add Bill</button>
                 </form>
             </div>
 
             <div class="card">
                 <h3>Recent Transactions</h3>
                 <ul id="bill-list"></ul>
+            </div>
+        </div>
+
+        <!-- Smart Pay Assistant (chat-style helper) -->
+        <div id="assistant-panel" class="card smart-assistant">
+            <div class="assistant-header">
+                <div>
+                    <p class="assistant-title">Smart Pay Assistant</p>
+                    <p class="assistant-subtitle">Guidance on which bills to pay first based on due dates and your budget.</p>
+                </div>
+            </div>
+            <div id="assistant-messages" class="assistant-messages">
+                <div class="assistant-message assistant-bot">
+                    Hi! I’ll analyze your unpaid bills and suggest which ones to clear first so you stay on track.
+                </div>
+            </div>
+            <div class="assistant-actions">
+                <button id="assistant-suggest" class="assistant-btn-primary">Suggest which bill to pay now</button>
+                <button id="assistant-later" class="assistant-btn-secondary">Plan bills for later</button>
             </div>
         </div>
     </main>
@@ -114,7 +133,10 @@
     </div>
 </div>
 
+<script src="theme.js"></script>
+<script src="ai-config.js"></script>
 <script src="dashboard.js"></script>
+<script src="assistant.js"></script>
 
 </body>
 </html>
