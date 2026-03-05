@@ -25,7 +25,7 @@
 function runDashboardLogic(apiUser) {
     const $ = id => document.getElementById(id);
     // Point to local Flask backend
-    const API_URL = "http://127.0.0.1:5000/api/bills";
+    const API_URL = "https://billmate-backend.onrender.com/api/bills";
     
     // Load budget from localStorage or default to 20000
     let userBudget = Number(localStorage.getItem("userBudget")) || 20000;

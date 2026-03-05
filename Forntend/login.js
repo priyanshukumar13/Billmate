@@ -69,7 +69,7 @@ function isFormValid() {
 }
 
 // 🟢 Login click handler (Flask backend)
-const BASE_URL = 'http://127.0.0.1:5000';
+const BASE_URL = 'https://billmate-backend.onrender.com';
 console.log('Auth BASE_URL =', BASE_URL);
 
 let loginProcessing = false;

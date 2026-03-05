@@ -66,7 +66,7 @@
 
     async function fetchBills() {
       try {
-        const res = await fetch("http://127.0.0.1:5000/api/bills");
+        const res = await fetch("https://billmate-backend.onrender.com/api/bills");
         if (!res.ok) return [];
         const data = await res.json();
         return Array.isArray(data) ? data : [];

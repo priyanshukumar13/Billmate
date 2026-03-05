@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const $ = id => document.getElementById(id);
-    const API_URL = "http://127.0.0.1:5000/api/bills";
+    const API_URL = "https://your-render-backend.onrender.com/api/bills";
     
     // State
     let currentDate = new Date();
