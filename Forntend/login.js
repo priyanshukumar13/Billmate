@@ -88,7 +88,7 @@ loginBtn.addEventListener('click', async (e) => {
   const password = document.getElementById('loginPassword').value;
 
   try {
-    const url = `${BASE_URL}/login`;
+    const url = `${BASE_URL}/api/auth/login`;
     console.log('Login request to', url);
     const res = await fetch(url, {
       method: 'POST',
