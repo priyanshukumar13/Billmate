@@ -52,7 +52,11 @@ signupBtn.addEventListener('click', async (e) => {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({ username: name, email, password })
+     body: JSON.stringify({
+  username: name,
+  email: email,
+  password: password
+})
     });
 
     const data = await res.json();
