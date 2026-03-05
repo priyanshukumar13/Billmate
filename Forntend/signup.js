@@ -48,11 +48,11 @@ signupBtn.addEventListener('click', async (e) => {
   const password = document.getElementById('signupPassword').value;
 
   try {
-    const url = `${BASE_URL}/signup`;
+    const url = `${BASE_URL}/api/auth/signup`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
+     body: JSON.stringify({ username: name, email, password })
     });
 
     const data = await res.json();
