@@ -3,8 +3,9 @@ document.addEventListener("DOMContentLoaded", () => {
     /* ===============================
        🔐 AUTH CHECK
     =============================== */
-    const userEmail = localStorage.getItem("billmateUser");
-    if (!userEmail || userEmail.trim() === "") {
+    const token = localStorage.getItem("billmateToken");
+    const userName = localStorage.getItem("billmateUser");
+    if (!token || !userName || userName.trim() === "") {
         window.location.href = "login.html";
         return;
     }
@@ -13,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
        ⚙️ LOAD SETTINGS
     =============================== */
     const defaultSettings = {
-        name: userEmail.split("@")[0],
+        name: userName.includes("@") ? userName.split("@")[0] : userName,
         currency: "₹",
         budget: 50000,
         darkMode: false
@@ -51,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     =============================== */
     $("userName").textContent = settings.name;
     $("displayName").value = settings.name;
-    $("displayEmail").value = userEmail;
+    $("displayEmail").value = localStorage.getItem("billmateEmail") || "";
     $("currencyPref").value = settings.currency;
     $("budgetLimit").value = settings.budget;
     $("darkModeToggle").checked = settings.darkMode;
@@ -94,6 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
        🚪 LOGOUT
     =============================== */
     $("logoutBtn").onclick = () => {
+        localStorage.removeItem("billmateToken");
+        localStorage.removeItem("billmateEmail");
         localStorage.removeItem("billmateUser");
         window.location.href = "login.html";
     };

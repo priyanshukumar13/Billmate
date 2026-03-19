@@ -46,31 +46,46 @@ signupBtn.addEventListener('click', async (e) => {
   const name = document.getElementById('fullName').value.trim();
   const email = document.getElementById('signupEmail').value.trim();
   const password = document.getElementById('signupPassword').value;
+  const confirmPassword = document.getElementById('signupConfirmPassword').value;
+
+  if (password !== confirmPassword) {
+    alert("Passwords do not match. Please confirm your password.");
+    signupProcessing = false;
+    signupBtn.disabled = false;
+    signupBtn.innerText = "Create Account";
+    return;
+  }
 
   try {
     const url = `${BASE_URL}/api/auth/signup`;
-    const res = await fetch(url, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    let res;
+    try {
+      res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({
-  username: name,
-  email: email,
-  password: password
-})
-    });
+        body: JSON.stringify({ username: name, email, password }),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data?.message || `Signup failed (status ${res.status})`);
+      alert(data?.msg || data?.message || `Signup failed (status ${res.status})`);
       signupProcessing = false;
       signupBtn.disabled = false;
-      signupBtn.innerText = "Signup";
+      signupBtn.innerText = "Create Account";
       return;
     }
 
     // Auto-login into dashboard after signup
-    localStorage.setItem("billmateUser", email);
+    localStorage.setItem("billmateToken", data.token);
+    localStorage.setItem("billmateUser", data?.user?.username || name);
+    localStorage.setItem("billmateEmail", data?.user?.email || email);
 
     alert('Signup successful! Redirecting to your dashboard.');
 
@@ -81,10 +96,13 @@ signupBtn.addEventListener('click', async (e) => {
 
   } catch (err) {
     console.error('Signup network error', err);
-    alert(`Network error. Ensure backend is running at ${BASE_URL}`);
+    const msg = err?.name === "AbortError"
+      ? "Signup request timed out. Please try again."
+      : `Network error. Ensure backend is running at ${BASE_URL}`;
+    alert(msg);
     signupProcessing = false;
     signupBtn.disabled = false;
-    signupBtn.innerText = "Signup";
+    signupBtn.innerText = "Create Account";
   }
 });
 

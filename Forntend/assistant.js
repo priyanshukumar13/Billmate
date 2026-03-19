@@ -66,7 +66,15 @@
 
     async function fetchBills() {
       try {
-        const res = await fetch("https://billmate-backend.onrender.com/api/bills");
+        const token = localStorage.getItem("billmateToken");
+        if (!token) return [];
+
+        const res = await fetch("https://billmate-backend.onrender.com/api/bills", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
         if (!res.ok) return [];
         const data = await res.json();
         return Array.isArray(data) ? data : [];

@@ -3,11 +3,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const authArea = document.getElementById("auth-area");
   const getStartedBtn = document.querySelector(".cta-btn-blue");
   const userEmail = localStorage.getItem("billmateUser");
+  const token = localStorage.getItem("billmateToken");
 
-  if (userEmail) {
+  if (token && userEmail) {
 
     if (authArea) {
-      const name = userEmail.split("@")[0];
+      const name = userEmail.includes("@") ? userEmail.split("@")[0] : userEmail;
       const shortName = name.length > 8 ? name.slice(0, 8) + "…" : name;
 
       authArea.innerHTML = `
@@ -25,6 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("navbarLogoutBtn")
         .addEventListener("click", (e) => {
           e.preventDefault();
+          localStorage.removeItem("billmateToken");
+          localStorage.removeItem("billmateEmail");
           localStorage.removeItem("billmateUser");
           window.location.href = "login.html";
         });

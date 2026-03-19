@@ -2,20 +2,20 @@
    🔐 1. SIMPLE AUTH CHECK (FLASK)
 =============================== */
 (function initDashboard() {
-    const userEmail = localStorage.getItem('billmateUser');
-    if (!userEmail) {
+    const token = localStorage.getItem('billmateToken');
+    if (!token) {
         window.location.href = 'login.html';
         return;
     }
 
     if (document.getElementById('userName')) {
-        document.getElementById('userName').textContent = userEmail;
+        document.getElementById('userName').textContent = localStorage.getItem('billmateUser') || 'User';
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => runDashboardLogic(userEmail));
+        document.addEventListener('DOMContentLoaded', () => runDashboardLogic(localStorage.getItem('billmateUser') || 'User'));
     } else {
-        runDashboardLogic(userEmail);
+        runDashboardLogic(localStorage.getItem('billmateUser') || 'User');
     }
 })();
 
@@ -24,15 +24,16 @@
 =============================== */
 function runDashboardLogic(apiUser) {
     const $ = id => document.getElementById(id);
-    // Point to local Flask backend
     const API_URL = "https://billmate-backend.onrender.com/api/bills";
+    const token = localStorage.getItem('billmateToken');
     
     // Load budget from localStorage or default to 20000
     let userBudget = Number(localStorage.getItem("userBudget")) || 20000;
     let bills = []; 
 
     const getAuthHeaders = () => ({
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
     });
 
     // --- FETCH BILLS FROM DATABASE ---
@@ -42,6 +43,9 @@ function runDashboardLogic(apiUser) {
             if (response.ok) {
                 bills = await response.json();
                 updateDashboard();
+            } else if (response.status === 401) {
+                localStorage.clear();
+                window.location.href = 'login.html';
             }
         } catch (error) {
             console.error("Error fetching bills:", error);
@@ -183,10 +187,10 @@ function runDashboardLogic(apiUser) {
         });
 
         // Trigger backend email alert if configured
-        const userEmail = localStorage.getItem('billmateUser');
+        const userEmail = localStorage.getItem('billmateEmail');
         if (emailAlerts.length > 0 && userEmail && !sessionStorage.getItem('emailSent')) {
             try {
-                await fetch("http://127.0.0.1:5000/api/bills/send-immediate-alert", {
+                await fetch("https://billmate-backend.onrender.com/api/bills/send-immediate-alert", {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ email: userEmail, alerts: emailAlerts })

@@ -12,12 +12,20 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: 'https://billmatex.netlify.app', 
-  credentials: true,               
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  // Allow the deployed frontend to call this backend from different origins.
+  // We use JWT tokens (Authorization header), so cookies/credentials are not required.
+  origin: true,
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json()); 
+
+// Basic health check
+app.get('/', (_req, res) => {
+  res.json({ message: 'BillMate backend running', time: new Date().toISOString() });
+});
 
 // ===============================
 // 📧 EMAIL SETUP (Nodemailer)
@@ -48,6 +56,36 @@ app.post('/api/bills/send-immediate-alert', async (req, res) => {
         console.error("Email Error:", error);
         res.status(500).send("Error sending email");
     }
+});
+
+// Support contact form endpoint (used by Forntend/contact.js)
+app.post('/contact', async (req, res) => {
+  const { name, email, message } = req.body || {};
+
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(500).json({ error: 'Email not configured on server' });
+    }
+
+    if (!message || String(message).trim() === '') {
+      return res.status(400).json({ error: 'Message cannot be empty' });
+    }
+
+    const to = process.env.CONTACT_TO || 'pk2525507@gmail.com';
+
+    const mailOptions = {
+      from: `"BillMate" <${process.env.EMAIL_USER}>`,
+      to,
+      subject: 'New BillMate contact request',
+      text: `Name: ${name || 'Visitor'}\nEmail: ${email || 'no-email-provided'}\n\nMessage:\n${String(message).trim()}`
+    };
+
+    await transporter.sendMail(mailOptions);
+    return res.status(200).json({ message: 'Contact message sent' });
+  } catch (err) {
+    console.error('Contact error:', err.message);
+    return res.status(500).json({ error: 'Error sending contact message' });
+  }
 });
 
 app.use('/api/auth', authRoutes);

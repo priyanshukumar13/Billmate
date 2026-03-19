@@ -2,7 +2,26 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const User = require('../models/User'); 
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+function generateOtp() {
+  // 6-digit OTP
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function hashOtp(otp) {
+  return crypto.createHash('sha256').update(String(otp)).digest('hex');
+}
 
 // ===============================
 // 1. SIGNUP ROUTE (The missing part!)
@@ -61,10 +80,11 @@ router.post('/signup', async (req, res) => {
 // 2. LOGIN ROUTE
 // ===============================
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    // Frontend sends username + password (and we also support email for flexibility)
+    const { username, email, password } = req.body;
 
     try {
-        const user = await User.findOne({ email });
+        const user = await User.findOne(email ? { email } : { username });
         if (!user) {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
@@ -96,6 +116,90 @@ router.post('/login', async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
+    }
+});
+
+// ===============================
+// 2.5 FORGOT PASSWORD (OTP)
+// ===============================
+router.post('/forgot-password', async (req, res) => {
+    const { usernameOrEmail } = req.body;
+
+    if (!usernameOrEmail) {
+        return res.status(400).json({ msg: 'usernameOrEmail is required' });
+    }
+
+    try {
+        const user = await User.findOne({
+            $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }]
+        });
+
+        // Avoid user enumeration: respond success either way.
+        if (!user) {
+            return res.status(200).json({ msg: 'If an account exists, an OTP has been sent.' });
+        }
+
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+            return res.status(500).json({ msg: 'Email not configured on server' });
+        }
+
+        const otp = generateOtp();
+        user.passwordResetOtpHash = hashOtp(otp);
+        user.passwordResetOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        await user.save();
+
+        await transporter.sendMail({
+            from: `"BillMate" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: 'BillMate password reset OTP',
+            text: `Your BillMate OTP is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you didn't request it, you can ignore this email.`
+        });
+
+        return res.status(200).json({ msg: 'OTP sent successfully', email: user.email });
+    } catch (err) {
+        console.error('Forgot password error:', err.message);
+        return res.status(500).json({ msg: 'Server error' });
+    }
+});
+
+// ===============================
+// 2.6 RESET PASSWORD (OTP)
+// ===============================
+router.post('/reset-password', async (req, res) => {
+    const { usernameOrEmail, email, otp, newPassword } = req.body;
+
+    const identifier = email || usernameOrEmail;
+    if (!identifier || !otp || !newPassword) {
+        return res.status(400).json({ msg: 'identifier, otp, and newPassword are required' });
+    }
+
+    try {
+        const user = await User.findOne({
+            $or: [{ email: identifier }, { username: identifier }]
+        });
+
+        if (!user || !user.passwordResetOtpHash || !user.passwordResetOtpExpires) {
+            return res.status(400).json({ msg: 'OTP is not valid or has expired' });
+        }
+
+        if (user.passwordResetOtpExpires < new Date()) {
+            return res.status(400).json({ msg: 'OTP expired' });
+        }
+
+        if (user.passwordResetOtpHash !== hashOtp(otp)) {
+            return res.status(400).json({ msg: 'Invalid OTP' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.passwordResetOtpHash = null;
+        user.passwordResetOtpExpires = null;
+        await user.save();
+
+        return res.status(200).json({ msg: 'Password reset successful' });
+    } catch (err) {
+        console.error('Reset password error:', err.message);
+        return res.status(500).json({ msg: 'Server error' });
     }
 });
 

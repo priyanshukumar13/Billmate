@@ -3,8 +3,8 @@ document.addEventListener("DOMContentLoaded", async () => { // Added async here
     /* ===============================
        🔐 1. SIMPLE AUTH CHECK (FLASK)
     =============================== */
-    const userEmail = localStorage.getItem('billmateUser');
-    if (!userEmail) {
+    const token = localStorage.getItem('billmateToken');
+    if (!token) {
         window.location.href = 'login.html';
         return;
     }
@@ -13,7 +13,8 @@ document.addEventListener("DOMContentLoaded", async () => { // Added async here
     const API_URL = "https://billmate-backend.onrender.com/api/bills";
 
     const getAuthHeaders = () => ({
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
     });
 
     /* ===============================
@@ -25,6 +26,9 @@ document.addEventListener("DOMContentLoaded", async () => { // Added async here
         if (response.ok) {
             bills = await response.json();
             renderAnalytics(bills); // Call the function to build the page
+        } else if (response.status === 401) {
+            localStorage.clear();
+            window.location.href = 'login.html';
         } else {
             console.error("Failed to fetch bills from server");
         }
