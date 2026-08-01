@@ -7,41 +7,101 @@
   <link rel="stylesheet" href="profile.css" />
 </head>
 <body>
-
   <div class="profile-container">
-
-    <!-- User Card -->
-    <div class="profile-card">
-      <img src="icons/user-avatar.png" class="profile-avatar" alt="User">
-
-      <h2 id="userName">User Name</h2>
-      <p id="userEmail">user@email.com</p>
-
-      <button class="edit-btn">Edit Profile</button>
+    <div class="top-bar">
+      <a href="dashboard.html" class="back-btn" title="Back to Dashboard">← Dashboard</a>
     </div>
+    <h1>Profile Settings</h1>
+    <p class="subtitle">Manage your account details and reminder preferences.</p>
 
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <h3>Total Bills</h3>
-        <span>12</span>
-      </div>
-      <div class="stat-card">
-        <h3>Paid</h3>
-        <span>8</span>
-      </div>
-      <div class="stat-card">
-        <h3>Upcoming</h3>
-        <span>3</span>
-      </div>
-      <div class="stat-card overdue">
-        <h3>Overdue</h3>
-        <span>1</span>
-      </div>
-    </div>
+    <div id="globalMessage" class="message hidden" role="alert"></div>
 
+    <section class="card">
+      <h2>User Info</h2>
+      <form id="profileForm">
+        <div class="field">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" name="fullName" type="text" required />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" required />
+        </div>
+        <div class="field">
+          <label for="phoneNumber">Phone Number</label>
+          <input id="phoneNumber" name="phoneNumber" type="text" placeholder="+91 9876543210" />
+        </div>
+        <button type="submit" class="btn">Save Changes</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Profile Picture</h2>
+      <div class="picture-row">
+        <img id="profilePicturePreview" class="profile-avatar" src="icons/user-avatar.png" alt="Profile preview" />
+        <div class="field grow">
+          <label for="profilePictureFile">Upload Image</label>
+          <input id="profilePictureFile" name="profilePictureFile" type="file" accept="image/*" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Bill Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <p>Pending Bills</p>
+          <h3 id="pendingBillsCount">0</h3>
+        </div>
+        <div class="stat-card">
+          <p>Paid This Month</p>
+          <h3 id="paidThisMonthCount">0</h3>
+        </div>
+        <div class="stat-card">
+          <p>Upcoming Bills</p>
+          <h3 id="upcomingBillsCount">0</h3>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Notification Settings</h2>
+      <form id="notificationForm">
+        <label class="toggle">
+          <input id="emailNotifications" type="checkbox" />
+          <span>Email Notifications</span>
+        </label>
+        <label class="toggle">
+          <input id="smsNotifications" type="checkbox" />
+          <span>SMS Notifications</span>
+        </label>
+        <div class="field">
+          <label for="reminderDays">Reminder Days Before Due Date</label>
+          <input id="reminderDays" type="text" placeholder="e.g. 1,3,7" />
+        </div>
+        <button type="submit" class="btn">Save Notification Settings</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Change Password</h2>
+      <form id="passwordForm">
+        <div class="field">
+          <label for="oldPassword">Old Password</label>
+          <input id="oldPassword" type="password" required />
+        </div>
+        <div class="field">
+          <label for="newPassword">New Password</label>
+          <input id="newPassword" type="password" required minlength="6" />
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm Password</label>
+          <input id="confirmPassword" type="password" required minlength="6" />
+        </div>
+        <button type="submit" class="btn">Update Password</button>
+      </form>
+    </section>
   </div>
-
   <script src="profile.js"></script>
 </body>
 </html>

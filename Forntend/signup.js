@@ -23,8 +23,12 @@ signupBtn.addEventListener('mouseleave', () => {
   }
 });
 
-/* 🌐 API URL logic (Flask backend) */
-const BASE_URL = 'https://billmate-backend.onrender.com';
+/* 🌐 API URL logic */
+const BASE_URL =
+  window.BILLMATE_API_BASE_URL ||
+  ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:5000"
+    : "https://billmate-backend.onrender.com");
 
 /* ✅ Main Signup Logic */
 let signupProcessing = false;
@@ -63,8 +67,8 @@ signupBtn.addEventListener('click', async (e) => {
     let res;
     try {
       res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: name, email, password }),
         signal: controller.signal
       });
@@ -72,7 +76,13 @@ signupBtn.addEventListener('click', async (e) => {
       clearTimeout(timeoutId);
     }
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      const text = await res.text();
+      data = { msg: text || `Signup failed (status ${res.status})` };
+    }
 
     if (!res.ok) {
       alert(data?.msg || data?.message || `Signup failed (status ${res.status})`);
@@ -86,6 +96,7 @@ signupBtn.addEventListener('click', async (e) => {
     localStorage.setItem("billmateToken", data.token);
     localStorage.setItem("billmateUser", data?.user?.username || name);
     localStorage.setItem("billmateEmail", data?.user?.email || email);
+    localStorage.setItem("billmateProfilePicture", data?.user?.profile_picture || "");
 
     alert('Signup successful! Redirecting to your dashboard.');
 

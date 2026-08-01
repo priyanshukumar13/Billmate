@@ -10,10 +10,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (authArea) {
       const name = userEmail.includes("@") ? userEmail.split("@")[0] : userEmail;
       const shortName = name.length > 8 ? name.slice(0, 8) + "…" : name;
+      const profilePicture = localStorage.getItem("billmateProfilePicture") || "icons/user-avatar.png";
 
       authArea.innerHTML = `
         <div class="user-profile-wrapper">
-          <div class="user-btn">👤 ${shortName}</div>
+          <div class="user-btn"><img class="user-btn-avatar" src="${profilePicture}" alt="User" /> ${shortName}</div>
           <div class="user-dropdown">
             <a href="profile.html">My Profile</a>
             <a href="#" id="navbarLogoutBtn" class="logout-link">Logout</a>

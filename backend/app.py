@@ -9,6 +9,15 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+from datetime import datetime
+
+from services.ai_service import (
+    classify_bill,
+    compute_spending_metrics,
+    generate_ai_response,
+    generate_insights,
+    get_smart_reminder_days,
+)
 
 # Load environment variables
 load_dotenv()
@@ -122,12 +131,32 @@ def add_bill():
     try:
         data = request.json
 
+        raw_text = (data or {}).get("text") or (data or {}).get("raw_text")
+        ai_result = {"title": "", "category": "Other"}
+        if raw_text:
+            ai_result = classify_bill(raw_text)
+
+        bill_name = (data or {}).get("name") or ai_result["title"]
+        bill_category = (data or {}).get("category") or ai_result["category"]
+        user_id = (data or {}).get("user_id")
+        user_email = (data or {}).get("user_email")
+
+        if not bill_name or not data.get("amount") or not data.get("date"):
+            return jsonify({"error": "name/title, amount, and date are required"}), 400
+
+        reminder_days_before = get_smart_reminder_days(user_id, bills_collection)
+
         bill = {
-            "name": data["name"],
+            "name": bill_name,
             "amount": data["amount"],
-            "category": data["category"],
+            "category": bill_category,
             "date": data["date"],
-            "status": data.get("status", "Unpaid")
+            "status": data.get("status", "Unpaid"),
+            "user_id": user_id,
+            "user_email": user_email,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "reminder_days_before": reminder_days_before
         }
 
         result = bills_collection.insert_one(bill)
@@ -185,9 +214,15 @@ def update_bill(id):
 
         new_status = "Paid" if bill["status"] == "Unpaid" else "Unpaid"
 
+        update_data = {"status": new_status, "updated_at": datetime.utcnow()}
+        if new_status == "Paid":
+            update_data["paid_date"] = datetime.utcnow()
+        else:
+            update_data["paid_date"] = None
+
         bills_collection.update_one(
             {"_id": ObjectId(id)},
-            {"$set": {"status": new_status}}
+            {"$set": update_data}
         )
 
         return jsonify({"message": "Bill updated"})
@@ -239,6 +274,58 @@ def contact():
 
         return jsonify({"message": "Contact message sent"}), 200
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------- AI CHAT ASSISTANT ----------------
+@app.route("/api/ai/chat", methods=["POST"])
+@app.route("/ai/chat", methods=["POST"])
+def ai_chat():
+    try:
+        data = request.json or {}
+        query = str(data.get("query", "")).strip()
+        if not query:
+            return jsonify({"error": "query is required"}), 400
+
+        user_id = data.get("user_id")
+        user_email = data.get("user_email")
+        db_query = {}
+        if user_id:
+            db_query["user_id"] = user_id
+        elif user_email:
+            db_query["user_email"] = user_email
+
+        bills = list(bills_collection.find(db_query))
+        answer = generate_ai_response(query, bills)
+        return jsonify({"response": answer}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ---------------- AI INSIGHTS ----------------
+@app.route("/api/ai/insights", methods=["GET"])
+@app.route("/ai/insights", methods=["GET"])
+def ai_insights():
+    try:
+        user_id = request.args.get("user_id")
+        user_email = request.args.get("user_email")
+
+        db_query = {}
+        if user_id:
+            db_query["user_id"] = user_id
+        elif user_email:
+            db_query["user_email"] = user_email
+
+        bills = list(bills_collection.find(db_query))
+        metrics = compute_spending_metrics(bills)
+        insight_text = generate_insights(metrics)
+
+        return jsonify({
+            "monthly_total": metrics["monthly_total"],
+            "category_spending": metrics["category_spending"],
+            "insight": insight_text
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

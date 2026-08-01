@@ -19,6 +19,7 @@
             <a href="dashboard.html">Dashboard</a>
             <a href="calendar.html">Calendar</a>
             <a href="expenses.html" class="active">Expenses</a>
+            <a href="reports.html">Reports</a>
             <a href="settings.html">Settings</a>
         </nav>
         <button class="btn-logout" id="logoutBtn">Logout</button>
@@ -38,31 +39,28 @@
             <div class="card stat-card highlight">
                 <h3>Highest Bill This Month</h3>
                 <p class="amount" id="highest-bill-amt">₹0</p>
-                <small id="highest-bill-name">None</small>
+                <small id="highest-bill-name">Calculating...</small>
             </div>
-
+            
             <div class="card stat-card">
-                <h3>Average per Bill</h3>
-                <p class="amount" id="avg-bill-amt">₹0</p>
+                <h3>Average Bill Value</h3>
+                <p class="amount" id="average-bill-amt">₹0</p>
+                <small>Per categorized item</small>
             </div>
-
+            
             <div class="card stat-card">
-                <h3>Total Monthly Paid</h3>
-                <p class="amount text-success" id="total-paid-amt">₹0</p>
-            </div>
-
-            <div class="card stat-card">
-                <h3>Bills Count</h3>
-                <p class="amount" id="total-bills-count">0</p>
+                <h3>Total Paid This Month</h3>
+                <p class="amount" id="total-paid-amt" style="color:#10b981;">₹0</p>
+                <small>Cleared bills</small>
             </div>
         </div>
 
-        <!-- Charts -->
+        <!-- Charts Layout -->
         <div class="visual-grid">
             <div class="card">
-                <h3>Spending per Category</h3>
+                <h3>Monthly Spending Trend</h3>
                 <div style="height:300px;">
-                    <canvas id="categoryChart"></canvas>
+                    <canvas id="expensesTrendChart"></canvas>
                 </div>
             </div>
 
@@ -76,10 +74,15 @@
     </main>
 </div>
 
+<!-- React Floating AI Assistant mounts here -->
+<div id="react-assistant-root"></div>
+
 <!-- ✅ SCRIPTS (ORDER MATTERS) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="theme.js"></script>
 <script src="expenses.js"></script>
+<script type="module" src="assets/dashboard_react.js"></script>
+
 
 </body>
 </html>

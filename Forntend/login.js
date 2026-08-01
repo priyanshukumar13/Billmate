@@ -68,8 +68,12 @@ function isFormValid() {
   );
 }
 
-// 🟢 Login click handler (Render backend)
-const BASE_URL = 'https://billmate-backend.onrender.com';
+// 🟢 Login click handler
+const BASE_URL =
+  window.BILLMATE_API_BASE_URL ||
+  ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? "http://localhost:5000"
+    : "https://billmate-backend.onrender.com");
 
 let loginProcessing = false;
 loginBtn.addEventListener('click', async (e) => {
@@ -118,6 +122,7 @@ loginBtn.addEventListener('click', async (e) => {
     localStorage.setItem("billmateToken", data.token);
     localStorage.setItem("billmateUser", data?.user?.username || username);
     localStorage.setItem("billmateEmail", data?.user?.email || "");
+    localStorage.setItem("billmateProfilePicture", data?.user?.profile_picture || "");
 
     window.location.href = "dashboard.html";
 

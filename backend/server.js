@@ -1,15 +1,22 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const nodemailer = require('nodemailer'); // 👈 ADDED THIS
 
 const authRoutes = require('./routes/auth');
 const billRoutes = require('./routes/bills');
+const profileRoutes = require('./routes/profile');
+const aiRoutes = require('./routes/ai');
+const receiptsRoutes = require('./routes/receipts');
+const reportsRoutes = require('./routes/reports');
 const startCronJob = require('./cronJob'); 
+const path = require('path');
 
-dotenv.config();
 const app = express();
+
 
 app.use(cors({
   // Allow the deployed frontend to call this backend from different origins.
@@ -90,6 +97,15 @@ app.post('/contact', async (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/bills', billRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/receipts', receiptsRoutes);
+app.use('/api/reports', reportsRoutes);
+
+// Expose static folders for S3 fallback uploads/reports
+app.use('/receipts', express.static(path.join(__dirname, 'receipts')));
+app.use('/reports', express.static(path.join(__dirname, 'reports')));
+
 
 // ===============================
 // 3. DATABASE & SERVER START

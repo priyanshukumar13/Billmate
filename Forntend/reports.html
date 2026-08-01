@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillMate Reports</title>
+    <!-- Simple auth check to prevent flash of content -->
+    <script>
+        const token = localStorage.getItem('billmateToken');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/assets/reports.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/jsx-runtime.js">
+  <link rel="modulepreload" crossorigin href="/assets/src.js">
+  <link rel="modulepreload" crossorigin href="/assets/loader-circle.js">
+  <link rel="stylesheet" crossorigin href="/assets/src.css">
+  <link rel="stylesheet" crossorigin href="/assets/reports.css">
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="logo-area">📑 BillMate</div>
+
+        <nav class="side-nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="calendar.html">Calendar</a>
+            <a href="expenses.html">Expenses</a>
+            <a href="reports.html" class="active">Reports</a>
+            <a href="settings.html">Settings</a>
+        </nav>
+
+        <button class="btn-logout" id="logoutBtn">Logout</button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content" style="padding: 0; background: #070707;">
+        <div id="react-reports-root"></div>
+    </main>
+</div>
+
+<script src="../theme.js"></script>
+<script>
+    document.getElementById('logoutBtn').onclick = () => {
+        localStorage.removeItem('billmateToken');
+        localStorage.removeItem('billmateUser');
+        localStorage.removeItem('billmateEmail');
+        localStorage.removeItem('billmateProfilePicture');
+        window.location.href = 'login.html';
+    };
+</script>
+
+</body>
+</html>

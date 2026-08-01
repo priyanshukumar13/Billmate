@@ -14,6 +14,8 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+const JWT_SECRET = process.env.JWT_SECRET || 'devsecret';
+
 function generateOtp() {
   // 6-digit OTP
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -27,8 +29,8 @@ function hashOtp(otp) {
 // 1. SIGNUP ROUTE (The missing part!)
 // ===============================
 router.post('/signup', async (req, res) => {
-    // Note: Use 'username' if your frontend sends 'username' or 'fullName'
-    const { username, email, password } = req.body;
+    const { username, full_name, email, password } = req.body;
+    console.log('Signup request body:', req.body);
 
     try {
         // Check if user already exists
@@ -39,7 +41,8 @@ router.post('/signup', async (req, res) => {
 
         // Create new user instance
         user = new User({
-            username, // This captures "Full Name" from your form
+            username,
+            full_name: full_name || username,
             email,
             password
         });
@@ -52,27 +55,22 @@ router.post('/signup', async (req, res) => {
 
         // Create Token so they are logged in immediately after signup
         const payload = { user: { id: user.id } };
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
 
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' },
-            (err, token) => {
-                if (err) throw err;
-                res.status(201).json({ 
-                    token, 
-                    user: { 
-                        id: user.id, 
-                        username: user.username, 
-                        email: user.email 
-                    } 
-                });
-            }
-        );
+        return res.status(201).json({ 
+            token, 
+            user: { 
+                id: user.id, 
+                username: user.username, 
+                full_name: user.full_name,
+                email: user.email,
+                profile_picture: user.profile_picture || ''
+            } 
+        });
 
     } catch (err) {
-        console.error("Signup Error:", err.message);
-        res.status(500).send('Server Error');
+        console.error('Signup Error:', err);
+        return res.status(500).json({ msg: 'Server Error', error: err.message });
     }
 });
 
@@ -98,7 +96,7 @@ router.post('/login', async (req, res) => {
 
         jwt.sign(
             payload,
-            process.env.JWT_SECRET,
+            JWT_SECRET,
             { expiresIn: '1h' },
             (err, token) => {
                 if (err) throw err;
@@ -107,7 +105,9 @@ router.post('/login', async (req, res) => {
                     user: { 
                         id: user.id, 
                         username: user.username, 
-                        email: user.email 
+                        full_name: user.full_name,
+                        email: user.email,
+                        profile_picture: user.profile_picture || ''
                     } 
                 });
             }
@@ -214,7 +214,7 @@ const verifyToken = (req, res, next) => {
         const token = tokenHeader.split(" ")[1];
         if (!token) return res.status(401).json({ msg: 'Token format error' });
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded.user;
         next();
     } catch (e) {

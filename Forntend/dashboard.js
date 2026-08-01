@@ -11,6 +11,10 @@
     if (document.getElementById('userName')) {
         document.getElementById('userName').textContent = localStorage.getItem('billmateUser') || 'User';
     }
+    const avatar = document.getElementById('headerUserAvatar');
+    if (avatar) {
+        avatar.src = localStorage.getItem('billmateProfilePicture') || 'icons/user-avatar.png';
+    }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => runDashboardLogic(localStorage.getItem('billmateUser') || 'User'));
@@ -24,7 +28,11 @@
 =============================== */
 function runDashboardLogic(apiUser) {
     const $ = id => document.getElementById(id);
-    const API_URL = "https://billmate-backend.onrender.com/api/bills";
+    const API_BASE = (window.BILLMATE_API_BASE_URL
+        || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5000'
+            : 'https://billmate-backend.onrender.com'));
+    const API_URL = `${API_BASE}/api/bills`;
     const token = localStorage.getItem('billmateToken');
     
     // Load budget from localStorage or default to 20000
@@ -190,7 +198,7 @@ function runDashboardLogic(apiUser) {
         const userEmail = localStorage.getItem('billmateEmail');
         if (emailAlerts.length > 0 && userEmail && !sessionStorage.getItem('emailSent')) {
             try {
-                await fetch("https://billmate-backend.onrender.com/api/bills/send-immediate-alert", {
+                await fetch(`${API_BASE}/api/bills/send-immediate-alert`, {
                     method: 'POST',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ email: userEmail, alerts: emailAlerts })
