@@ -46,6 +46,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 
+let lastDbError = null;
+
 // ===============================
 // HEALTH CHECK (no DB required)
 // Responds even during cold start so monitoring tools work
@@ -56,6 +58,7 @@ app.get('/health', (_req, res) => {
   res.json({
     status: dbState === 1 ? 'ok' : 'starting',
     db: states[dbState] || 'unknown',
+    dbError: lastDbError ? String(lastDbError).replace(/mongodb(\+srv)?:\/\/[^@]+@/i, 'mongodb+srv://<auth>@') : null,
     time: new Date().toISOString(),
   });
 });
@@ -210,33 +213,45 @@ if (!MONGO_URI) {
   process.exit(1);
 }
 
-mongoose.connect(MONGO_URI, {
-  // Fail fast if the primary can't be found — prevents 30s hangs on cold start
-  serverSelectionTimeoutMS: 5000,
-  // Close idle sockets after 30s
-  socketTimeoutMS: 30000,
-  // Connection pool — reuse connections efficiently
-  maxPoolSize: 10,
-  // CRITICAL: do NOT buffer queries while disconnected.
-  // Without this, Mongoose queues queries for 10s then throws a timeout.
-  // With this, queries fail immediately with a "not connected" error
-  // which our /api DB-gate middleware catches and returns a clean 503.
-  bufferCommands: false,
-})
-  .then(() => {
-    console.log('✅ MongoDB Connected');
-    try {
-      startCronJob();
-      console.log('✅ Bill Reminder Scheduler Running');
-    } catch (cronError) {
-      console.error('⚠️ Cron Job Error:', cronError.message);
-    }
+let cronStarted = false;
+
+function connectWithRetry() {
+  if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+    return;
+  }
+  mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 30000,
+    maxPoolSize: 10,
+    bufferCommands: false,
   })
-  .catch(err => {
-    // Log the error but do NOT exit — the server stays up so /health and / still respond.
-    // Render health checks keep the dyno alive; DB will reconnect automatically.
-    console.error('❌ DB Connection Error:', err.message);
-  });
+    .then(() => {
+      lastDbError = null;
+      console.log('✅ MongoDB Connected');
+      if (!cronStarted) {
+        try {
+          startCronJob();
+          cronStarted = true;
+          console.log('✅ Bill Reminder Scheduler Running');
+        } catch (cronError) {
+          console.error('⚠️ Cron Job Error:', cronError.message);
+        }
+      }
+    })
+    .catch(err => {
+      lastDbError = err.message;
+      console.error('❌ DB Connection Error:', err.message);
+      // Automatically retry in 5 seconds
+      setTimeout(connectWithRetry, 5000);
+    });
+}
+
+connectWithRetry();
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️ MongoDB disconnected. Retrying in 5 seconds...');
+  setTimeout(connectWithRetry, 5000);
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
