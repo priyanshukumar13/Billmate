@@ -1,130 +1,182 @@
 const cron = require('node-cron');
+const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const Bill = require('./models/Bill');
 const User = require('./models/User');
 require('dotenv').config();
 
-// 1. Setup Nodemailer Transporter
-const transporter = nodemailer.createTransport({
+// Create Nodemailer Transporter
+function getTransporter() {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    return null;
+  }
+  return nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
     }
-});
+  });
+}
 
-// Helper function to send email (to the user's email when available)
-const sendEmailAlert = async (toEmail, billName, dueDate, alertLabel) => {
-    const mailOptions = {
-        from: `"BillMate Reminders" <${process.env.EMAIL_USER}>`,
-        to: toEmail || process.env.EMAIL_USER,
-        subject: `⚠️ [${alertLabel}] Bill Reminder: ${billName}`,
-        text: `Hello,\n\nThis is an automated reminder from BillMate.\n\n${alertLabel}: Your bill "${billName}" is due on ${dueDate}.\n\nPlease log in to your dashboard to pay it.\n\nRegards,\nBillMate Team`
-    };
+// Send formatted reminder email
+const sendEmailAlert = async (toEmail, userName, billName, amount, dueDateStr, stageLabel, daysRemaining) => {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn(`⚠️ Cannot send email reminder for "${billName}": EMAIL_USER or EMAIL_PASS not configured.`);
+    return false;
+  }
 
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log(`📧 Email sent successfully for: ${billName} (${alertLabel}) to ${mailOptions.to}`);
-    } catch (error) {
-        console.error(`❌ Failed to send email for ${billName}:`, error.message);
-    }
+  let statusDescription = '';
+  if (daysRemaining > 1) {
+    statusDescription = `Days remaining: ${daysRemaining}\nPlease make your payment before the due date.`;
+  } else if (daysRemaining === 1) {
+    statusDescription = `Days remaining: 1 (Due tomorrow)\nPlease make your payment soon.`;
+  } else if (daysRemaining === 0) {
+    statusDescription = `⚠️ This bill is due TODAY!\nPlease make your payment today to avoid late fees.`;
+  } else {
+    statusDescription = `🚨 This bill is OVERDUE by ${Math.abs(daysRemaining)} day(s).\nPlease make your payment immediately.`;
+  }
+
+  const subject = `BillMate Reminder: ${billName} ${daysRemaining < 0 ? 'is Overdue' : daysRemaining === 0 ? 'Due Today' : 'Due Soon'}`;
+  const text = `Hello ${userName || 'Valued User'},\n\nYour ${billName} of ₹${amount} is due on ${dueDateStr}.\n\n${statusDescription}\n\nLog in to your dashboard to manage your bills:\nBillMate Team`;
+
+  const mailOptions = {
+    from: `"BillMate Reminders" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject,
+    text
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`📧 Reminder email successfully sent to ${toEmail} for bill: "${billName}" [${stageLabel}]`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to send email for bill "${billName}":`, error.message);
+    return false;
+  }
 };
 
+// Main check function
 const checkBills = async () => {
-    console.log("⏰ Running Daily Bill Check...");
+  if (mongoose.connection.readyState !== 1) {
+    console.warn('⚠️ [Scheduler] DB is not connected. Skipping bill check.');
+    return;
+  }
+  console.log('⏰ [Scheduler] Running Bill Check & Reminder Evaluation...');
 
-    try {
-        const now = new Date();
-        // Get today and 3 days from now in YYYY-MM-DD format
-        const today = now;
-        const todayStr = today.toISOString().split('T')[0];
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        const threeDaysDate = new Date();
-        threeDaysDate.setDate(today.getDate() + 3);
-        const threeDaysStr = threeDaysDate.toISOString().split('T')[0];
+    // Find all unpaid bills populated with user notification preferences
+    const unpaidBills = await Bill.find({
+      status: { $regex: /^(unpaid|upcoming|due soon|overdue)$/i }
+    }).populate('user', 'email username full_name email_notifications reminder_days_before');
 
-        console.log(`🔍 Checking bills due between [${todayStr}] and [${threeDaysStr}]`);
+    if (!unpaidBills || unpaidBills.length === 0) {
+      console.log('ℹ️ [Scheduler] No unpaid bills found.');
+      return;
+    }
 
-        // Find Unpaid bills due in this range and populate user email
-        const dueBills = await Bill.find({
-            date: { $gte: todayStr, $lte: threeDaysStr },
-            status: { $regex: /^unpaid$/i }
-        }).populate('user', 'email username');
+    console.log(`🔍 [Scheduler] Evaluating ${unpaidBills.length} unpaid bill(s)...`);
 
-        if (dueBills.length > 0) {
-            console.log(`📢 Found ${dueBills.length} bills due!`);
-            
-            for (const bill of dueBills) {
-                try {
-                    console.log(`✅ Processing Bill: ${bill.name} (due ${bill.date})`);
+    for (const bill of unpaidBills) {
+      try {
+        if (!bill.date) continue;
 
-                    // Parse the bill's due date (assumes YYYY-MM-DD)
-                    const due = new Date(bill.date + 'T00:00:00');
+        // Parse due date
+        const due = new Date(bill.date + (bill.date.includes('T') ? '' : 'T00:00:00'));
+        due.setHours(0, 0, 0, 0);
 
-                    // Build scheduled times (local): 3 days before at 09:00, day-before at 09:00 and 18:00
-                    const threeDaysAt9 = new Date(due);
-                    threeDaysAt9.setDate(due.getDate() - 3);
-                    threeDaysAt9.setHours(9,0,0,0);
+        if (isNaN(due.getTime())) continue;
 
-                    const dayBeforeAt9 = new Date(due);
-                    dayBeforeAt9.setDate(due.getDate() - 1);
-                    dayBeforeAt9.setHours(9,0,0,0);
+        // Difference in days (positive = in future, 0 = today, negative = overdue)
+        const diffTime = due.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                    const dayBeforeAt18 = new Date(due);
-                    dayBeforeAt18.setDate(due.getDate() - 1);
-                    dayBeforeAt18.setHours(18,0,0,0);
-
-                    // Helper: consider a match if the target time is within one minute of now
-                    const isNow = (target) => Math.abs(now - target) < 60 * 1000;
-
-                    // Send 3-days-before reminder
-                    if (!bill.reminders?.threeDays && isNow(threeDaysAt9)) {
-                        const to = bill.user?.email || process.env.EMAIL_USER;
-                        await sendEmailAlert(to, bill.name, bill.date, '3 days before');
-                        bill.reminders = bill.reminders || {};
-                        bill.reminders.threeDays = true;
-                        await bill.save();
-                    }
-
-                    // Send day-before morning reminder
-                    if (!bill.reminders?.dayBeforeMorning && isNow(dayBeforeAt9)) {
-                        const to = bill.user?.email || process.env.EMAIL_USER;
-                        await sendEmailAlert(to, bill.name, bill.date, 'Day-before (Morning)');
-                        bill.reminders = bill.reminders || {};
-                        bill.reminders.dayBeforeMorning = true;
-                        await bill.save();
-                    }
-
-                    // Send day-before evening reminder
-                    if (!bill.reminders?.dayBeforeEvening && isNow(dayBeforeAt18)) {
-                        const to = bill.user?.email || process.env.EMAIL_USER;
-                        await sendEmailAlert(to, bill.name, bill.date, 'Day-before (Evening)');
-                        bill.reminders = bill.reminders || {};
-                        bill.reminders.dayBeforeEvening = true;
-                        await bill.save();
-                    }
-
-                } catch (billErr) {
-                    console.error(`❌ Error processing bill ${bill._id}:`, billErr.message);
-                }
-            }
-        } else {
-            console.log("No bills due in the checked window.");
+        const user = bill.user;
+        // If user disabled email notifications, skip email sending
+        if (user && user.email_notifications === false) {
+          continue;
         }
 
-    } catch (error) {
-        console.error("❌ Error during bill check:", error);
+        const targetEmail = user?.email || process.env.EMAIL_USER;
+        if (!targetEmail) continue;
+
+        const displayName = user?.full_name || user?.username || 'User';
+
+        bill.reminders = bill.reminders || {};
+        let reminderSent = false;
+
+        // Stage 1: 7 days before
+        if (diffDays === 7 && !bill.reminders.sevenDays) {
+          const ok = await sendEmailAlert(targetEmail, displayName, bill.name, bill.amount, bill.date, '7 Days Before', 7);
+          if (ok) {
+            bill.reminders.sevenDays = true;
+            reminderSent = true;
+          }
+        }
+
+        // Stage 2: 3 days before
+        if (diffDays === 3 && !bill.reminders.threeDays) {
+          const ok = await sendEmailAlert(targetEmail, displayName, bill.name, bill.amount, bill.date, '3 Days Before', 3);
+          if (ok) {
+            bill.reminders.threeDays = true;
+            reminderSent = true;
+          }
+        }
+
+        // Stage 3: 1 day before (tomorrow)
+        if (diffDays === 1 && !bill.reminders.oneDay) {
+          const ok = await sendEmailAlert(targetEmail, displayName, bill.name, bill.amount, bill.date, '1 Day Before', 1);
+          if (ok) {
+            bill.reminders.oneDay = true;
+            bill.reminders.dayBeforeMorning = true;
+            reminderSent = true;
+          }
+        }
+
+        // Stage 4: Due today
+        if (diffDays === 0 && !bill.reminders.dueToday) {
+          const ok = await sendEmailAlert(targetEmail, displayName, bill.name, bill.amount, bill.date, 'Due Today', 0);
+          if (ok) {
+            bill.reminders.dueToday = true;
+            reminderSent = true;
+          }
+        }
+
+        // Stage 5: Overdue (send once when diffDays <= -1)
+        if (diffDays < 0 && !bill.reminders.overdue) {
+          const ok = await sendEmailAlert(targetEmail, displayName, bill.name, bill.amount, bill.date, 'Overdue Alert', diffDays);
+          if (ok) {
+            bill.reminders.overdue = true;
+            reminderSent = true;
+          }
+        }
+
+        if (reminderSent) {
+          await bill.save();
+        }
+
+      } catch (billErr) {
+        console.error(`❌ [Scheduler] Error processing bill ${bill._id}:`, billErr.message);
+      }
     }
+  } catch (error) {
+    console.error('❌ [Scheduler] Error during bill check:', error.message);
+  }
 };
 
 const startCronJob = () => {
-    // Runs every minute for testing
-    cron.schedule('* * * * *', () => {
-        checkBills();
-    });
-    
-    // Run once immediately when server starts
-    checkBills(); 
+  // Check once an hour for scheduled reminders
+  cron.schedule('0 * * * *', () => {
+    checkBills();
+  });
+
+  // Run once immediately on startup
+  checkBills();
 };
 
 module.exports = startCronJob;

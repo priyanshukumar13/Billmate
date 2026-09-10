@@ -4,11 +4,12 @@ const geminiService = require('../services/geminiService');
 
 async function handleChat(req, res) {
   try {
-    const { message } = req.body;
+    const { message } = req.body || {};
     const userId = req.user.id;
 
-    if (!message) {
-      return res.status(400).json({ msg: 'Message content is required.' });
+    const trimmedMessage = (message || '').trim();
+    if (!trimmedMessage) {
+      return res.status(400).json({ msg: 'Please enter a message.' });
     }
 
     // Retrieve active conversation or create one
@@ -17,14 +18,14 @@ async function handleChat(req, res) {
       conversation = new Conversation({ userId, messages: [] });
     }
 
-    // Fetch user's actual bills from MongoDB
-    const bills = await Bill.find({ userId });
+    // Fetch user's actual bills from MongoDB (correct query using user ref)
+    const bills = await Bill.find({ user: userId }).sort({ date: 1 });
 
     // Generate AI response passing the actual bills to ground the responses
-    const aiResponseText = await geminiService.generateChatResponse(message, bills);
+    const aiResponseText = await geminiService.generateChatResponse(trimmedMessage, bills);
 
     // Save to conversation history
-    conversation.messages.push({ role: 'user', content: message });
+    conversation.messages.push({ role: 'user', content: trimmedMessage });
     conversation.messages.push({ role: 'assistant', content: aiResponseText });
     await conversation.save();
 
@@ -34,7 +35,7 @@ async function handleChat(req, res) {
     });
   } catch (err) {
     console.error('Chat controller error:', err);
-    return res.status(500).json({ msg: 'Internal server error during chat.' });
+    return res.status(500).json({ msg: 'The AI assistant is temporarily unavailable. Please try again.' });
   }
 }
 

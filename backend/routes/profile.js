@@ -75,21 +75,26 @@ router.put('/update', auth, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
-    if (!email || String(email).trim() === '') {
-      return res.status(400).json({ msg: 'Email is required' });
-    }
-
-    const normalizedEmail = String(email).trim().toLowerCase();
-    const existingWithEmail = await User.findOne({ email: normalizedEmail, _id: { $ne: req.user.id } });
-    if (existingWithEmail) {
-      return res.status(400).json({ msg: 'Email is already in use' });
+    const normalizedEmail = email ? String(email).trim().toLowerCase() : user.email;
+    if (normalizedEmail !== user.email) {
+      const existingWithEmail = await User.findOne({ email: normalizedEmail, _id: { $ne: req.user.id } });
+      if (existingWithEmail) {
+        return res.status(400).json({ msg: 'Email is already in use' });
+      }
+      user.email = normalizedEmail;
     }
 
     user.full_name = String(full_name).trim();
-    user.username = user.full_name; // compatibility with existing UI/flows
-    user.email = normalizedEmail;
+    user.username = user.full_name;
     user.phone_number = cleanPhone;
-    user.profile_picture = profile_picture ? String(profile_picture).trim() : '';
+    
+    if (profile_picture !== undefined) {
+      const picStr = String(profile_picture).trim();
+      if (picStr.length > 7 * 1024 * 1024) { // ~5MB base64
+        return res.status(400).json({ msg: 'Profile picture file size is too large (max 5MB)' });
+      }
+      user.profile_picture = picStr;
+    }
 
     await user.save();
     return res.json({ msg: 'Profile updated successfully', user: sanitizeUser(user) });

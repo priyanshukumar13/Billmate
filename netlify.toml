@@ -1,0 +1,29 @@
+# BillMate — Netlify Build Configuration
+# This file overrides the Netlify dashboard settings.
+# It points Netlify at the correct "frontend/" directory
+# after the repository was reorganized from the old "Forntend/" (typo) folder.
+
+[build]
+  # Change into the frontend/ subdirectory before building
+  base    = "frontend"
+  command = "npm run build"
+  # Publish the Vite output (relative to "base" above → frontend/dist)
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# ── Security headers ──────────────────────────────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options        = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection       = "1; mode=block"
+    Referrer-Policy        = "strict-origin-when-cross-origin"
+
+# ── Cache static assets aggressively ─────────────────────────────────────────
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

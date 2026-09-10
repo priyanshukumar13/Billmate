@@ -5,26 +5,24 @@ const geminiService = require('../services/geminiService');
 async function generateMonthlyReport(req, res) {
   try {
     const userId = req.user.id;
-    const { month } = req.body; // expected: YYYY-MM
+    const { month } = req.body || {}; // expected: YYYY-MM
 
     if (!month || !/^\d{4}-\d{2}$/.test(month)) {
       return res.status(400).json({ msg: 'Valid month (YYYY-MM) is required.' });
     }
 
-    // Fetch bills falling in this month
-    const startOfMonth = new Date(`${month}-01T00:00:00.000Z`);
-    const endOfMonth = new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 0, 23, 59, 59, 999);
-
+    // Fetch bills belonging to this user for the specified month
+    // Supports both 'YYYY-MM-DD' strings and ISO date strings
     const bills = await Bill.find({
-      userId,
-      date: { $gte: startOfMonth, $lte: endOfMonth }
+      user: userId,
+      date: { $regex: `^${month}` }
     });
 
-    if (bills.length === 0) {
+    if (!bills || bills.length === 0) {
       return res.status(200).json({
         empty: true,
         month,
-        msg: 'No bills found for the selected month.'
+        msg: `No bills found for ${month}.`
       });
     }
 
@@ -35,24 +33,27 @@ async function generateMonthlyReport(req, res) {
     let pendingAmount = 0;
     let paidCount = 0;
     let pendingCount = 0;
-    let highestExpense = { name: 'N/A', amount: 0 };
+    let highestExpense = { name: 'N/A', amount: 0, category: 'Other', date: '' };
 
-    const categoryTotals = { Rent: 0, Food: 0, Bills: 0, Other: 0 };
+    const categoryTotals = { Rent: 0, Food: 0, Bills: 0, Utilities: 0, Subscription: 0, Insurance: 0, Other: 0 };
     const upcomingBills = [];
-
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
 
     bills.forEach(b => {
       const amt = Number(b.amount || 0);
       totalExpenses += amt;
 
-      if (b.status === 'Paid') {
+      const statusLower = (b.status || '').toLowerCase();
+
+      if (statusLower === 'paid') {
         paidAmount += amt;
         paidCount++;
       } else {
         pendingAmount += amt;
         pendingCount++;
-        if (new Date(b.date) > now) {
+        const dueDate = new Date(b.date + (b.date.includes('T') ? '' : 'T00:00:00'));
+        if (!isNaN(dueDate.getTime()) && dueDate >= now) {
           upcomingBills.push({ name: b.name, amount: amt, date: b.date });
         }
       }
@@ -69,19 +70,16 @@ async function generateMonthlyReport(req, res) {
       }
     });
 
-    // Subscriptions/Recurring estimate (simple filter by common names or recurring categories)
+    // Filter subscription / recurring items
     const subscriptions = bills.filter(b => 
-      /sub|netflix|spotify|youtube|prime|gym|internet|broadband/i.test(b.name) || 
+      b.category === 'Subscription' ||
+      /sub|netflix|spotify|youtube|prime|gym|internet|broadband|wifi|apple|disney/i.test(b.name) || 
       b.name.toLowerCase().includes('recurring')
     ).map(b => ({ name: b.name, amount: Number(b.amount || 0) }));
 
-    // Financial Health Score calculation (Paid vs Pending, Budget limit if any)
-    const budgetLimit = 25000; // default local budget
+    // Financial Health Score calculation
     const ratio = totalExpenses > 0 ? (paidAmount / totalExpenses) : 1;
     let score = Math.round(ratio * 100);
-    if (totalExpenses > budgetLimit) {
-      score = Math.max(0, score - Math.round(((totalExpenses - budgetLimit) / budgetLimit) * 20));
-    }
 
     const reportData = {
       month,
@@ -98,11 +96,19 @@ async function generateMonthlyReport(req, res) {
       upcomingBills
     };
 
-    // 3. Generate AI Insights via Gemini
-    const insights = await geminiService.generateReportInsights(reportData);
-    reportData.insights = insights;
+    // Generate AI Insights via Gemini
+    try {
+      const insights = await geminiService.generateReportInsights(reportData);
+      reportData.insights = insights;
+    } catch (aiErr) {
+      console.warn('AI Insights fallback:', aiErr.message);
+      reportData.insights = [
+        `You paid ₹${paidAmount} out of ₹${totalExpenses} total bills for ${month}.`,
+        pendingAmount > 0 ? `You have ₹${pendingAmount} remaining in pending bills.` : "All bills for this month have been settled! 🎉"
+      ];
+    }
 
-    // 4. Save report in DB (overwrite existing report for the month if exists)
+    // Save report in DB
     let reportDoc = await Report.findOne({ userId, month });
     if (reportDoc) {
       reportDoc.data = reportData;

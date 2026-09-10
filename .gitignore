@@ -9,5 +9,12 @@ database.db
 # Environment
 .env
 
+# Dependencies and Build Artifacts
+node_modules/
+**/node_modules/
+frontend/dist/
+dist/
+
 # OS
 .DS_Store
+

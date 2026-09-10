@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillMate - Bills</title>
+    <link rel="stylesheet" href="dashboard-style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="auth.js"></script>
+    <script>
+        if (!window.getBillmateToken()) {
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <a href="dashboard.html" class="logo-area">
+            <img src="icons/invoice.png" alt="Logo" class="logo-icon">
+            <span>BillMate</span>
+        </a>
+
+        <nav class="side-nav">
+            <a href="dashboard.html"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            <a href="calendar.html"><i data-lucide="calendar"></i> Calendar</a>
+            <a href="bills.html" class="active"><i data-lucide="receipt"></i> Bills</a>
+            <a href="expenses.html"><i data-lucide="pie-chart"></i> Expenses</a>
+            <a href="reports.html"><i data-lucide="file-text"></i> Reports</a>
+            <a href="budget.html"><i data-lucide="target"></i> Budget</a>
+            <a href="assistant.html"><i data-lucide="sparkles"></i> AI Assistant</a>
+            <a href="settings.html"><i data-lucide="settings"></i> Settings</a>
+        </nav>
+
+        <!-- Sidebar Upload Receipt Card -->
+        <div class="sidebar-upload-card">
+            <div class="icon-box">
+                <i data-lucide="file-up"></i>
+            </div>
+            <h4>Upload Receipt</h4>
+            <p>Scan & extract bill details</p>
+            <button class="btn-upload-now" onclick="window.location.href='dashboard.html'">Upload Now</button>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="btn-logout" id="logoutBtn"><i data-lucide="log-out"></i> Logout</button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- TOP HEADER -->
+        <div class="top-header">
+            <div class="header-left">
+                <h1 id="headerGreeting" class="header-greeting">Good Morning, User 👋</h1>
+                <p class="header-subtitle">Manage and track all your bills.</p>
+            </div>
+            
+            <div class="header-actions">
+                <button class="btn-add-bill-header" id="openAddBillModalBtn">
+                    <i data-lucide="plus"></i> Add New Bill
+                </button>
+                <div class="notification-bell" title="Notifications">
+                    <i data-lucide="bell"></i>
+                    <span class="notification-dot"></span>
+                </div>
+                <a href="settings.html" class="header-profile-wrap">
+                    <img id="headerUserAvatar" src="icons/user-avatar.png" alt="Avatar" />
+                    <div class="header-profile-text">
+                        <span class="header-profile-name" id="topUserName">User</span>
+                        <span class="header-profile-link">View Profile</span>
+                    </div>
+                    <i data-lucide="chevron-down" style="color: #64748b; width: 14px; height: 14px;"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- MAIN BILLS CARD -->
+        <div class="card">
+            <!-- FILTERS BAR -->
+            <div class="filter-bar">
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="ALL">All</button>
+                    <button class="filter-tab" data-filter="UNPAID">Unpaid</button>
+                    <button class="filter-tab" data-filter="PAID">Paid</button>
+                    <button class="filter-tab" data-filter="OVERDUE">Overdue</button>
+                </div>
+
+                <div class="search-filter-wrap">
+                    <div class="search-input-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="billSearchInput" placeholder="Search bills...">
+                    </div>
+
+                    <select id="billCategoryFilter" class="filter-select">
+                        <option value="ALL">All Categories</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Food">Food & Dining</option>
+                        <option value="Subscription">Subscription</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Insurance">Insurance</option>
+                        <option value="Other">Other</option>
+                    </select>
+
+                    <select id="billMonthFilter" class="filter-select">
+                        <option value="ALL">All Months</option>
+                        <option value="THIS_MONTH" selected>This Month</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- BILLS TABLE -->
+            <div class="bill-table-wrapper">
+                <table class="bill-table">
+                    <thead>
+                        <tr>
+                            <th>Bill Name</th>
+                            <th>Due Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="billsTableBody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 24px; color: #64748b;">Loading bills...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PAGINATION / SUMMARY -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px; font-size: 0.8rem; color: #64748b;">
+                <span id="billsCountSummary">Showing 0 of 0 bills</span>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ADD BILL MODAL -->
+<div id="addBillModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add New Bill</h3>
+            <button class="modal-close-btn" id="closeAddBillModalBtn"><i data-lucide="x"></i></button>
+        </div>
+        <form id="modal-add-bill-form">
+            <label>Bill Name</label>
+            <input id="modal-bill-name" placeholder="e.g. Electricity, Internet" required maxlength="100">
+            <label>Amount (₹)</label>
+            <input id="modal-bill-amount" type="number" step="0.01" min="1" placeholder="e.g. 1500" required>
+            <label>Due Date</label>
+            <input id="modal-bill-date" type="date" required>
+            <label>Category</label>
+            <select id="modal-bill-category" required>
+                <option value="Rent">Rent</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Food">Food & Dining</option>
+                <option value="Subscription">Subscription</option>
+                <option value="Bills" selected>Bills</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Other">Other</option>
+            </select>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelAddBillBtn">Cancel</button>
+                <button type="submit" class="btn-primary" style="flex:1;"><i data-lucide="plus"></i> Add Bill</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT BILL MODAL -->
+<div id="editBillModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Bill</h3>
+            <button class="modal-close-btn" id="closeEditBillModalBtn"><i data-lucide="x"></i></button>
+        </div>
+        <form id="modal-edit-bill-form">
+            <input type="hidden" id="edit-bill-id">
+            <label>Bill Name</label>
+            <input id="edit-bill-name" required maxlength="100">
+            <label>Amount (₹)</label>
+            <input id="edit-bill-amount" type="number" step="0.01" min="1" required>
+            <label>Due Date</label>
+            <input id="edit-bill-date" type="date" required>
+            <label>Category</label>
+            <select id="edit-bill-category">
+                <option value="Rent">Rent</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Food">Food & Dining</option>
+                <option value="Subscription">Subscription</option>
+                <option value="Bills">Bills</option>
+                <option value="Insurance">Insurance</option>
+                <option value="Other">Other</option>
+            </select>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="cancelEditBillBtn">Cancel</button>
+                <button type="submit" class="btn-primary" style="flex:1;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- React Floating AI Assistant mounts here -->
+<div id="react-assistant-root"></div>
+
+<script src="theme.js"></script>
+<script src="bills.js"></script>
+<script type="module" src="/src/dashboard-react-main.jsx"></script>
+<script>
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+</script>
+</body>
+</html>

@@ -43,7 +43,8 @@ async function uploadFile(fileBuffer, fileName, folder = 'receipts') {
     fs.writeFileSync(targetPath, fileBuffer);
     
     const PORT = process.env.PORT || 5000;
-    return { key: uniqueName, location: `http://localhost:${PORT}/${folder}/${uniqueName}` };
+    const baseUrl = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || (process.env.NODE_ENV === 'production' ? 'https://billmate-backend.onrender.com' : `http://localhost:${PORT}`);
+    return { key: uniqueName, location: `${baseUrl}/${folder}/${uniqueName}` };
   }
 }
 
@@ -57,7 +58,8 @@ async function getPresignedUrl(key, folder = 'receipts') {
   } else {
     // Local fallback URL
     const PORT = process.env.PORT || 5000;
-    return `http://localhost:${PORT}/${folder}/${key}`;
+    const baseUrl = process.env.BACKEND_URL || process.env.RENDER_EXTERNAL_URL || (process.env.NODE_ENV === 'production' ? 'https://billmate-backend.onrender.com' : `http://localhost:${PORT}`);
+    return `${baseUrl}/${folder}/${key}`;
   }
 }
 

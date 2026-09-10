@@ -10,7 +10,16 @@ async function uploadAndProcessReceipt(req, res) {
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ msg: 'Please upload a receipt file.' });
+      return res.status(400).json({ msg: 'Please select a receipt file to upload.' });
+    }
+
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return res.status(400).json({ msg: 'Invalid file type. Supported formats: JPG, PNG, WEBP, PDF.' });
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return res.status(400).json({ msg: 'File size exceeds maximum allowed limit of 10MB.' });
     }
 
     // 1. Upload file to S3 (or local storage fallback)
@@ -18,8 +27,8 @@ async function uploadAndProcessReceipt(req, res) {
 
     // 2. Perform OCR on the buffer
     const ocrText = await ocrService.extractText(file.buffer, file.mimetype);
-    if (!ocrText.trim()) {
-      return res.status(422).json({ msg: 'Could not extract any readable text from the receipt.' });
+    if (!ocrText || !ocrText.trim()) {
+      return res.status(422).json({ msg: 'Could not extract readable text from the receipt. You can still enter details manually.' });
     }
 
     // 3. Structure text using Gemini
@@ -28,11 +37,11 @@ async function uploadAndProcessReceipt(req, res) {
     // 4. Save to scanned receipts history
     const newReceipt = new Receipt({
       userId,
-      merchant: structuredData.merchant,
-      amount: structuredData.amount,
-      dueDate: structuredData.due_date ? new Date(structuredData.due_date) : null,
-      billNumber: structuredData.bill_number,
-      category: structuredData.category || 'Other',
+      merchant: structuredData.merchant || 'Receipt Merchant',
+      amount: Number(structuredData.amount) || 0,
+      dueDate: structuredData.due_date ? new Date(structuredData.due_date) : new Date(),
+      billNumber: structuredData.bill_number || null,
+      category: structuredData.category || 'Bills',
       fileKey: uploadResult.key,
       fileLocation: uploadResult.location,
       extractedData: structuredData,
@@ -54,31 +63,43 @@ async function uploadAndProcessReceipt(req, res) {
 async function confirmReceiptSave(req, res) {
   try {
     const userId = req.user.id;
-    const { receiptId, name, amount, date, category } = req.body;
+    const { receiptId, name, amount, date, category } = req.body || {};
 
-    if (!receiptId || !name || !amount || !date) {
-      return res.status(400).json({ msg: 'Missing required bill fields.' });
+    const trimmedName = (name || '').trim();
+    const numAmount = Number(amount);
+    const trimmedDate = (date || '').trim();
+
+    if (!trimmedName) {
+      return res.status(400).json({ msg: 'Bill name / merchant is required.' });
+    }
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({ msg: 'Bill amount must be greater than ₹0.' });
+    }
+    if (!trimmedDate) {
+      return res.status(400).json({ msg: 'Due date is required.' });
     }
 
-    const receipt = await Receipt.findOne({ _id: receiptId, userId });
-    if (!receipt) {
-      return res.status(404).json({ msg: 'Receipt transaction not found.' });
+    if (receiptId) {
+      const receipt = await Receipt.findOne({ _id: receiptId, userId });
+      if (receipt) {
+        receipt.status = 'saved';
+        await receipt.save();
+      }
     }
 
-    // Create the Bill in the database
+    const validCategories = ['Rent', 'Food', 'Bills', 'Utilities', 'Subscription', 'Insurance', 'Other'];
+    const assignedCategory = validCategories.includes(category) ? category : 'Bills';
+
+    // Create the Bill linked with user
     const newBill = new Bill({
-      userId,
-      name,
-      amount,
-      date,
-      category,
-      status: 'Unpaid' // Starts unpaid by default
+      user: userId,
+      name: trimmedName,
+      amount: numAmount,
+      date: trimmedDate.split('T')[0],
+      category: assignedCategory,
+      status: 'Unpaid'
     });
     await newBill.save();
-
-    // Mark receipt as saved
-    receipt.status = 'saved';
-    await receipt.save();
 
     return res.json({ msg: 'Bill saved successfully from receipt!', bill: newBill });
   } catch (err) {

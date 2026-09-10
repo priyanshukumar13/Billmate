@@ -16,8 +16,9 @@ const transporter = nodemailer.createTransport({
 
 const JWT_SECRET = process.env.JWT_SECRET || 'devsecret';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function generateOtp() {
-  // 6-digit OTP
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
@@ -26,24 +27,48 @@ function hashOtp(otp) {
 }
 
 // ===============================
-// 1. SIGNUP ROUTE (The missing part!)
+// 1. SIGNUP ROUTE
 // ===============================
 router.post('/signup', async (req, res) => {
-    const { username, full_name, email, password } = req.body;
-    console.log('Signup request body:', req.body);
+    const { username, full_name, email, password } = req.body || {};
+
+    const trimmedUsername = (username || '').trim();
+    const trimmedEmail = (email || '').trim().toLowerCase();
+    const trimmedFullName = (full_name || '').trim() || trimmedUsername;
+
+    if (!trimmedUsername || !trimmedEmail || !password) {
+        return res.status(400).json({ msg: 'Please provide username, email, and password.' });
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+        return res.status(400).json({ msg: 'Please enter a valid email address.' });
+    }
+
+    if (String(password).length < 6) {
+        return res.status(400).json({ msg: 'Password must be at least 6 characters.' });
+    }
 
     try {
-        // Check if user already exists
-        let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ msg: 'User already exists' });
+        // Check if user already exists with this email or username
+        let existingUser = await User.findOne({
+            $or: [
+                { email: trimmedEmail },
+                { username: trimmedUsername }
+            ]
+        });
+
+        if (existingUser) {
+            if (existingUser.email === trimmedEmail) {
+                return res.status(409).json({ msg: 'An account with this email already exists.' });
+            }
+            return res.status(409).json({ msg: 'This username is already taken.' });
         }
 
         // Create new user instance
-        user = new User({
-            username,
-            full_name: full_name || username,
-            email,
+        const user = new User({
+            username: trimmedUsername,
+            full_name: trimmedFullName,
+            email: trimmedEmail,
             password
         });
 
@@ -55,7 +80,7 @@ router.post('/signup', async (req, res) => {
 
         // Create Token so they are logged in immediately after signup
         const payload = { user: { id: user.id } };
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
         return res.status(201).json({ 
             token, 
@@ -70,7 +95,7 @@ router.post('/signup', async (req, res) => {
 
     } catch (err) {
         console.error('Signup Error:', err);
-        return res.status(500).json({ msg: 'Server Error', error: err.message });
+        return res.status(500).json({ msg: 'Server error during signup. Please try again later.' });
     }
 });
 
@@ -78,18 +103,30 @@ router.post('/signup', async (req, res) => {
 // 2. LOGIN ROUTE
 // ===============================
 router.post('/login', async (req, res) => {
-    // Frontend sends username + password (and we also support email for flexibility)
-    const { username, email, password } = req.body;
+    const { username, email, usernameOrEmail, password } = req.body || {};
+    const identifier = (username || email || usernameOrEmail || '').trim();
+
+    if (!identifier || !password) {
+        return res.status(400).json({ msg: 'Please provide both username/email and password.' });
+    }
 
     try {
-        const user = await User.findOne(email ? { email } : { username });
+        const lowerIdentifier = identifier.toLowerCase();
+        const user = await User.findOne({
+            $or: [
+                { email: lowerIdentifier },
+                { email: identifier },
+                { username: { $regex: new RegExp(`^${identifier}$`, 'i') } }
+            ]
+        });
+
         if (!user) {
-            return res.status(400).json({ msg: 'Invalid Credentials' });
+            return res.status(401).json({ msg: 'Invalid email or password.' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ msg: 'Invalid Credentials' });
+            return res.status(401).json({ msg: 'Invalid email or password.' });
         }
 
         const payload = { user: { id: user.id } };
@@ -97,9 +134,12 @@ router.post('/login', async (req, res) => {
         jwt.sign(
             payload,
             JWT_SECRET,
-            { expiresIn: '1h' },
+            { expiresIn: '7d' },
             (err, token) => {
-                if (err) throw err;
+                if (err) {
+                    console.error('JWT Sign error:', err);
+                    return res.status(500).json({ msg: 'Authentication error' });
+                }
                 res.json({ 
                     token, 
                     user: { 
@@ -114,8 +154,8 @@ router.post('/login', async (req, res) => {
         );
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Login Error:', err.message);
+        res.status(500).json({ msg: 'Server error during login. Please try again.' });
     }
 });
 
@@ -123,18 +163,20 @@ router.post('/login', async (req, res) => {
 // 2.5 FORGOT PASSWORD (OTP)
 // ===============================
 router.post('/forgot-password', async (req, res) => {
-    const { usernameOrEmail } = req.body;
+    const { usernameOrEmail } = req.body || {};
 
-    if (!usernameOrEmail) {
-        return res.status(400).json({ msg: 'usernameOrEmail is required' });
+    if (!usernameOrEmail || !String(usernameOrEmail).trim()) {
+        return res.status(400).json({ msg: 'Please enter your username or email.' });
     }
 
     try {
+        const trimmed = String(usernameOrEmail).trim();
+        const lowerTrimmed = trimmed.toLowerCase();
+
         const user = await User.findOne({
-            $or: [{ email: usernameOrEmail }, { username: usernameOrEmail }]
+            $or: [{ email: lowerTrimmed }, { email: trimmed }, { username: trimmed }]
         });
 
-        // Avoid user enumeration: respond success either way.
         if (!user) {
             return res.status(200).json({ msg: 'If an account exists, an OTP has been sent.' });
         }
@@ -158,7 +200,7 @@ router.post('/forgot-password', async (req, res) => {
         return res.status(200).json({ msg: 'OTP sent successfully', email: user.email });
     } catch (err) {
         console.error('Forgot password error:', err.message);
-        return res.status(500).json({ msg: 'Server error' });
+        return res.status(500).json({ msg: 'Server error sending password reset email' });
     }
 });
 
@@ -166,28 +208,33 @@ router.post('/forgot-password', async (req, res) => {
 // 2.6 RESET PASSWORD (OTP)
 // ===============================
 router.post('/reset-password', async (req, res) => {
-    const { usernameOrEmail, email, otp, newPassword } = req.body;
+    const { usernameOrEmail, email, otp, newPassword } = req.body || {};
 
-    const identifier = email || usernameOrEmail;
+    const identifier = (email || usernameOrEmail || '').trim();
     if (!identifier || !otp || !newPassword) {
-        return res.status(400).json({ msg: 'identifier, otp, and newPassword are required' });
+        return res.status(400).json({ msg: 'Please provide identifier, OTP, and new password.' });
+    }
+
+    if (String(newPassword).length < 6) {
+        return res.status(400).json({ msg: 'New password must be at least 6 characters.' });
     }
 
     try {
+        const lowerIdentifier = identifier.toLowerCase();
         const user = await User.findOne({
-            $or: [{ email: identifier }, { username: identifier }]
+            $or: [{ email: lowerIdentifier }, { email: identifier }, { username: identifier }]
         });
 
         if (!user || !user.passwordResetOtpHash || !user.passwordResetOtpExpires) {
-            return res.status(400).json({ msg: 'OTP is not valid or has expired' });
+            return res.status(400).json({ msg: 'OTP is not valid or has expired.' });
         }
 
         if (user.passwordResetOtpExpires < new Date()) {
-            return res.status(400).json({ msg: 'OTP expired' });
+            return res.status(400).json({ msg: 'OTP has expired. Please request a new one.' });
         }
 
         if (user.passwordResetOtpHash !== hashOtp(otp)) {
-            return res.status(400).json({ msg: 'Invalid OTP' });
+            return res.status(400).json({ msg: 'Invalid OTP entered.' });
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -196,42 +243,25 @@ router.post('/reset-password', async (req, res) => {
         user.passwordResetOtpExpires = null;
         await user.save();
 
-        return res.status(200).json({ msg: 'Password reset successful' });
+        return res.status(200).json({ msg: 'Password reset successfully. You can now log in.' });
     } catch (err) {
         console.error('Reset password error:', err.message);
-        return res.status(500).json({ msg: 'Server error' });
+        return res.status(500).json({ msg: 'Server error resetting password' });
     }
 });
 
 // ===============================
-// 3. VERIFY TOKEN MIDDLEWARE
+// 3. GET USER DATA (For Dashboard)
 // ===============================
-const verifyToken = (req, res, next) => {
-    const tokenHeader = req.header('Authorization');
-    if (!tokenHeader) return res.status(401).json({ msg: 'No token, authorization denied' });
-
-    try {
-        const token = tokenHeader.split(" ")[1];
-        if (!token) return res.status(401).json({ msg: 'Token format error' });
-
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded.user;
-        next();
-    } catch (e) {
-        res.status(401).json({ msg: 'Token is not valid' });
-    }
-};
-
-// ===============================
-// 4. GET USER DATA (For Dashboard)
-// ===============================
-router.get('/me', verifyToken, async (req, res) => {
+const auth = require('../middleware/auth');
+router.get('/me', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
+        if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
         res.json(user);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('/me error:', err.message);
+        res.status(500).json({ success: false, message: 'Server error.' });
     }
 });
 
