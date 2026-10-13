@@ -9,15 +9,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const $ = id => document.getElementById(id);
-    const BASE_URL = window.BILLMATE_API_BASE_URL ||
-        ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-            ? "http://localhost:5000"
-            : "https://billmate-backend.onrender.com");
+    const BASE_URL = (typeof window.getBillmateApiBase === 'function')
+        ? window.getBillmateApiBase()
+        : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
 
-    const getAuthHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    });
+    const getAuthHeaders = () => (typeof window.getBillmateAuthHeaders === 'function')
+        ? window.getBillmateAuthHeaders()
+        : {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('billmateToken') || ''}`
+        };
 
     let currentAvatarBase64 = localStorage.getItem("billmateProfilePicture") || "";
 
@@ -56,9 +57,24 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.warn("Could not fetch profile:", err);
         }
 
+        // Avatar & Initials preview
+        const initials = (window.getBillmateInitials && window.getBillmateInitials(fullName)) || 'U';
+        if ($("settingsAvatarInitials")) $("settingsAvatarInitials").textContent = initials;
+
+        if (currentAvatarBase64 && currentAvatarBase64 !== 'icons/user-avatar.png') {
+            if ($("settingsAvatarPreview")) {
+                $("settingsAvatarPreview").src = currentAvatarBase64;
+                $("settingsAvatarPreview").style.display = "block";
+            }
+            if ($("settingsAvatarInitials")) $("settingsAvatarInitials").style.display = "none";
+        } else {
+            if ($("settingsAvatarPreview")) $("settingsAvatarPreview").style.display = "none";
+            if ($("settingsAvatarInitials")) $("settingsAvatarInitials").style.display = "flex";
+        }
+
         // Load Preferences
-        const theme = window.getBillmateTheme ? window.getBillmateTheme() : "light";
-        if ($("prefThemeSelect")) $("prefThemeSelect").value = theme;
+        const curr = localStorage.getItem("billmateCurrency") || "INR";
+        if ($("prefCurrencySelect")) $("prefCurrencySelect").value = curr;
     }
 
     /* ===============================
@@ -78,8 +94,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             const reader = new FileReader();
             reader.onload = function (e) {
                 currentAvatarBase64 = e.target.result;
-                if ($("settingsAvatarPreview")) $("settingsAvatarPreview").src = currentAvatarBase64;
-                if ($("headerUserAvatar")) $("headerUserAvatar").src = currentAvatarBase64;
+                if ($("settingsAvatarPreview")) {
+                    $("settingsAvatarPreview").src = currentAvatarBase64;
+                    $("settingsAvatarPreview").style.display = "block";
+                }
+                if ($("settingsAvatarInitials")) $("settingsAvatarInitials").style.display = "none";
+                if ($("headerUserAvatar")) {
+                    $("headerUserAvatar").src = currentAvatarBase64;
+                    $("headerUserAvatar").style.display = "block";
+                }
+                if ($("headerUserInitials")) $("headerUserInitials").style.display = "none";
                 localStorage.setItem("billmateProfilePicture", currentAvatarBase64);
             };
             reader.readAsDataURL(file);
@@ -173,17 +197,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("btnGoToPassword")?.addEventListener("click", () => switchTab("tabBtnSecurity"));
 
     /* ===============================
-       🎨 6. PREFERENCES & THEME
+       🎨 6. PREFERENCES
     =============================== */
     $("preferencesForm")?.addEventListener("submit", (e) => {
         e.preventDefault();
-        const selectedTheme = $("prefThemeSelect")?.value || "light";
-        if (window.setBillmateTheme) {
-            window.setBillmateTheme(selectedTheme, true);
-        } else {
-            localStorage.setItem("billmateTheme", selectedTheme);
+        const selectedCurrency = $("prefCurrencySelect")?.value || "INR";
+        localStorage.setItem("billmateCurrency", selectedCurrency);
+        const fb = $("prefSaveFeedback");
+        if (fb) {
+            fb.style.display = "inline-block";
+            setTimeout(() => { fb.style.display = "none"; }, 2500);
         }
-        alert("Preferences updated successfully! ✓");
     });
 
     /* ===============================

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Sparkles, Trash2, Bot, User, CornerDownLeft } from 'lucide-react';
+import { getApiBaseUrl } from '../apiConfig';
 
 export default function FloatingAssistant() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,10 +10,7 @@ export default function FloatingAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const BASE_URL = window.BILLMATE_API_BASE_URL ||
-    ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-      ? "http://localhost:5000"
-      : "https://billmate-backend.onrender.com");
+  const BASE_URL = getApiBaseUrl();
 
   const suggestionPrompts = [
     "How much did I spend this month?",

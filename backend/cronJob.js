@@ -158,6 +158,22 @@ const checkBills = async () => {
 
         if (reminderSent) {
           await bill.save();
+          try {
+            const { createNotification } = require('./utils/notificationHelper');
+            const userId = (bill.user && bill.user._id) ? bill.user._id : bill.user;
+            if (userId) {
+              await createNotification({
+                userId,
+                title: 'Reminder Email Sent',
+                message: `Reminder email sent for ${bill.name}.`,
+                type: 'REMINDER_EMAIL',
+                billId: bill._id,
+                billName: bill.name
+              });
+            }
+          } catch (notifErr) {
+            console.warn('Failed to record cron reminder notification:', notifErr.message);
+          }
         }
 
       } catch (billErr) {

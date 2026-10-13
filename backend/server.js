@@ -14,9 +14,11 @@ const profileRoutes = require('./routes/profile');
 const aiRoutes = require('./routes/ai');
 const receiptsRoutes = require('./routes/receipts');
 const reportsRoutes = require('./routes/reports');
+const notificationsRoutes = require('./routes/notifications');
 const startCronJob = require('./cronJob');
 const authMiddleware = require('./middleware/auth');
 const User = require('./models/User');
+const { createNotification } = require('./utils/notificationHelper');
 
 const app = express();
 
@@ -37,9 +39,13 @@ app.use(cors({
     // Allow requests with no origin (Postman, mobile, server-to-server)
     if (!origin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    return callback(new Error('CORS: origin not allowed'), false);
+    // Allow any localhost / 127.0.0.1 port in development
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
+    // Allow Netlify preview deployments
+    if (/^https:\/\/[a-z0-9-]+--billmatex\.netlify\.app$/.test(origin)) return callback(null, true);
+    return callback(null, false);
   },
-  credentials: false,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -75,9 +81,12 @@ app.get('/', (_req, res) => {
 // ===============================
 app.use('/api', (req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
+    const msg = 'Database service is starting up. Please try again in a few seconds.';
     return res.status(503).json({
       success: false,
-      message: 'Service is starting up. Please try again in a few seconds.',
+      error: msg,
+      message: msg,
+      msg: msg,
     });
   }
   next();
@@ -89,7 +98,7 @@ app.use('/api', (req, res, next) => {
 // ===============================
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: process.env.NODE_ENV === 'production' ? 20 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -150,6 +159,17 @@ app.post('/api/bills/send-immediate-alert', authMiddleware, async (req, res) => 
       text: `Hello ${user.full_name || 'Valued User'},\n\nYou have the following bill reminders:\n\n${sanitizedAlerts.join('\n')}\n\nLog in to BillMate to manage your payments.\n\nBillMate Team`,
     });
 
+    try {
+      await createNotification({
+        userId: user._id,
+        title: 'Reminder Email Sent',
+        message: `Reminder email sent for ${sanitizedAlerts.length} bill reminder(s).`,
+        type: 'REMINDER_EMAIL'
+      });
+    } catch (notifErr) {
+      console.warn('Could not persist notification for immediate alert:', notifErr.message);
+    }
+
     return res.status(200).json({ success: true, message: 'Alert email sent.' });
   } catch (error) {
     console.error('Send alert error:', error.message);
@@ -197,6 +217,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/receipts', receiptsRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Static folders for local file fallback (receipts/reports if S3 not configured)
 app.use('/receipts', express.static(path.join(__dirname, 'receipts')));
@@ -253,7 +274,10 @@ mongoose.connection.on('disconnected', () => {
   setTimeout(connectWithRetry, 5000);
 });
 
+const { verifySmtpConnection } = require('./utils/emailService');
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  verifySmtpConnection();
 });

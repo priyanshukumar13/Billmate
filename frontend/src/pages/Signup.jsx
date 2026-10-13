@@ -3,6 +3,7 @@ import { Eye, EyeOff, User, Mail, Lock, Sparkles, AlertCircle } from 'lucide-rea
 import { motion, AnimatePresence } from 'framer-motion';
 import Lamp from '../components/Lamp';
 import GlassCard from '../components/GlassCard';
+import { getApiBaseUrl } from '../apiConfig';
 
 // ─── Inline error component ───────────────────────────────────────────────────
 function InlineError({ message }) {
@@ -39,11 +40,8 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Resolve backend URL at runtime
-  const BASE_URL = window.BILLMATE_API_BASE_URL ||
-    ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-      ? 'http://localhost:5000'
-      : 'https://billmate-backend.onrender.com');
+  // Centralized API base URL resolver
+  const BASE_URL = getApiBaseUrl();
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
@@ -106,14 +104,21 @@ export default function Signup() {
         return;
       }
 
-      // Success — persist session and go to dashboard
-      localStorage.setItem('billmateToken', data.token);
-      localStorage.setItem('billmateUser', data?.user?.username || trimmedName);
-      localStorage.setItem('billmateEmail', data?.user?.email || trimmedEmail);
-      localStorage.setItem('billmateProfilePicture', data?.user?.profile_picture || '');
-
-      // Redirect immediately — no blocking alert
-      window.location.href = 'dashboard.html';
+      // If token provided, persist session and go to dashboard
+      if (data?.token) {
+        localStorage.setItem('billmateToken', data.token);
+        localStorage.setItem('billmateUser', data?.user?.username || trimmedName);
+        localStorage.setItem('billmateEmail', data?.user?.email || trimmedEmail);
+        localStorage.setItem('billmateProfilePicture', data?.user?.profile_picture || '');
+        window.location.href = 'dashboard.html';
+      } else {
+        // First-login verification required: direct user to login screen
+        try {
+          sessionStorage.setItem('billmateSignupNotice', 'Account created! Please sign in with your password to complete your first-time email verification.');
+          sessionStorage.setItem('billmatePrefillUser', trimmedEmail);
+        } catch (_) {}
+        window.location.href = 'login.html';
+      }
     } catch (err) {
       if (err?.name === 'AbortError') {
         setError('Signup request timed out. Please try again.');

@@ -64,17 +64,45 @@
                 <a href="bills.html" class="btn-add-bill-header">
                     <i data-lucide="plus"></i> Add New Bill
                 </a>
-                <div class="notification-bell" title="Notifications">
-                    <i data-lucide="bell"></i>
-                    <span class="notification-dot"></span>
+                <button class="header-icon-btn theme-toggle-btn" id="themeToggleBtn" type="button" title="Switch Theme (Light/Dark)" aria-label="Toggle theme">
+                    <i data-lucide="sun" class="theme-icon-sun"></i>
+                    <i data-lucide="moon" class="theme-icon-moon"></i>
+                </button>
+                <div class="notification-wrapper">
+                    <button class="header-icon-btn notification-bell-btn" id="notificationBellBtn" type="button" title="View Notifications" aria-label="Notifications" aria-expanded="false">
+                        <i data-lucide="bell"></i>
+                        <span class="notification-badge" id="notificationBadge" style="display:none;">0</span>
+                    </button>
+                    <div class="notification-dropdown" id="notificationDropdown" role="region" aria-label="Notifications Panel">
+                        <div class="notification-header">
+                            <div class="notification-title-wrap">
+                                <h4>Notifications</h4>
+                                <span class="notification-count-pill" id="notificationCountPill">0 new</span>
+                            </div>
+                            <button type="button" class="btn-mark-all-read" id="markAllReadBtn" title="Mark all notifications as read">Mark all as read</button>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <div class="notification-empty-icon"><i data-lucide="bell-off"></i></div>
+                                <h5>No notifications</h5>
+                                <p>You're all caught up with your bills and reminders.</p>
+                            </div>
+                        </div>
+                        <div class="notification-footer">
+                            <button type="button" class="btn-clear-read" id="clearReadNotifsBtn">Clear read</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="header-profile-wrap">
-                    <img id="headerUserAvatar" src="icons/user-avatar.png" alt="Avatar" />
+                    <div class="header-avatar-container">
+                        <img id="headerUserAvatar" class="profile-avatar-img" src="" alt="Profile" style="display:none;" />
+                        <div id="headerUserInitials" class="profile-avatar-initials">U</div>
+                    </div>
                     <div class="header-profile-text">
                         <span class="header-profile-name" id="topUserName">User</span>
                         <span class="header-profile-link">Settings</span>
                     </div>
-                    <i data-lucide="chevron-down" style="color: #64748b; width: 14px; height: 14px;"></i>
+                    <i data-lucide="chevron-down" style="color: var(--text-muted); width: 14px; height: 14px;"></i>
                 </div>
             </div>
         </div>
@@ -96,7 +124,10 @@
                 <h3 style="margin-bottom: 16px;">Profile Information</h3>
 
                 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-light);">
-                    <img id="settingsAvatarPreview" src="icons/user-avatar.png" alt="Avatar" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border);">
+                    <div style="width: 72px; height: 72px; border-radius: 50%; overflow: hidden; border: 2px solid var(--border); position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--border-light);">
+                        <img id="settingsAvatarPreview" src="" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                        <div id="settingsAvatarInitials" class="profile-avatar-initials" style="width: 100%; height: 100%; font-size: 1.5rem;">U</div>
+                    </div>
                     <div>
                         <label for="avatarFileInput" class="btn-primary" style="padding: 7px 16px; font-size: 0.8rem; cursor: pointer; display: inline-flex; border-radius: 8px;">Change Photo</label>
                         <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
@@ -153,20 +184,14 @@
             <h3 style="margin-bottom: 16px;">App Preferences</h3>
             <form id="preferencesForm" style="max-width: 500px;">
                 <div style="margin-bottom: 16px;">
-                    <label>Appearance Theme</label>
-                    <select id="prefThemeSelect" class="filter-select" style="width: 100%;">
-                        <option value="light">Light Theme (Default - Recommended)</option>
-                        <option value="dark">Dark Theme</option>
-                    </select>
-                </div>
-                <div style="margin-bottom: 16px;">
                     <label>Currency</label>
                     <select id="prefCurrencySelect" class="filter-select" style="width: 100%;">
-                        <option value="INR">Indian Rupee (₹)</option>
+                        <option value="INR" selected>Indian Rupee (₹)</option>
                         <option value="USD">US Dollar ($)</option>
                     </select>
                 </div>
                 <button type="submit" class="btn-primary">Save Preferences</button>
+                <small id="prefSaveFeedback" style="display: none; margin-top: 8px; font-weight: 600; color: #22c55e;">Preferences saved! ✓</small>
             </form>
         </div>
 

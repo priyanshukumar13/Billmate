@@ -46,22 +46,41 @@
 =============================== */
 function runDashboardLogic() {
     const $ = id => document.getElementById(id);
-    const BASE_URL = (window.BILLMATE_API_BASE_URL
-        || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-            ? 'http://localhost:5000'
-            : 'https://billmate-backend.onrender.com'));
+    const BASE_URL = (typeof window.getBillmateApiBase === 'function')
+        ? window.getBillmateApiBase()
+        : (window.BILLMATE_API_BASE_URL || 'http://localhost:5000');
     const API_URL = `${BASE_URL}/api/bills`;
-    const token = localStorage.getItem('billmateToken');
     
-    // Load budget from localStorage or default to 20000
-    let userBudget = Number(localStorage.getItem("userBudget")) || 20000;
+    // Load budget from localStorage or default to 50000
+    const storedBudget = parseFloat(localStorage.getItem("userBudget"));
+    let userBudget = (!isNaN(storedBudget) && isFinite(storedBudget) && storedBudget > 0) ? storedBudget : 50000;
     let bills = []; 
     let activeFilter = 'ALL'; // 'ALL' | 'UNPAID' | 'PAID'
 
-    const getAuthHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    });
+    const getAuthHeaders = () => (typeof window.getBillmateAuthHeaders === 'function')
+        ? window.getBillmateAuthHeaders()
+        : {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('billmateToken') || ''}`
+        };
+
+    function showConnectionError(msg) {
+        const alertContainer = $("alert-container");
+        if (!alertContainer) return;
+        let banner = $("backend-conn-error");
+        if (!banner) {
+            banner = document.createElement("div");
+            banner.id = "backend-conn-error";
+            banner.style.cssText = "background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 16px; border-radius:10px; margin-bottom:18px; display:flex; align-items:center; gap:10px; font-size:0.9rem;";
+            alertContainer.prepend(banner);
+        }
+        banner.innerHTML = `<span style="font-size:1.2rem;">⚠️</span> <span><strong>Connection Notice:</strong> ${msg}</span>`;
+    }
+
+    function clearConnectionError() {
+        const banner = $("backend-conn-error");
+        if (banner) banner.remove();
+    }
 
     // Helper: Compute dynamic status label & styling
     function getBillStatusInfo(bill) {
@@ -97,19 +116,27 @@ function runDashboardLogic() {
         try {
             const response = await fetch(API_URL, { headers: getAuthHeaders() });
             if (response.ok) {
+                clearConnectionError();
                 bills = await response.json();
                 window.latestBills = bills; // Store globally for assistant
                 updateDashboard();
             } else if (response.status === 401) {
                 if (window.logoutBillmate) {
-                    window.logoutBillmate();
+                    window.logoutBillmate('Your session has expired. Please log in again.');
                 } else {
                     localStorage.removeItem('billmateToken');
                     window.location.href = 'login.html';
                 }
+            } else if (response.status === 503) {
+                showConnectionError("Service is starting up. Please wait a few seconds...");
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                const msg = (window.extractApiErrorMessage && window.extractApiErrorMessage(errData)) || errData.error || errData.message || `Failed to fetch bills (${response.status}).`;
+                console.error("Failed to fetch bills:", msg);
             }
         } catch (error) {
             console.error("Error fetching bills:", error);
+            showConnectionError(`Cannot reach the BillMate server at <code>${BASE_URL}</code>. Please make sure the backend is running.`);
         }
     }
 
@@ -130,13 +157,15 @@ function runDashboardLogic() {
         });
 
         const remaining = userBudget - totalPaid;
-        const usedPercent = userBudget ? Math.round((totalPaid / userBudget) * 100) : 0;
+        const usedPercent = userBudget > 0 ? Math.round((totalPaid / userBudget) * 100) : 0;
 
         // Update Text Display
-        if($("display-budget")) $("display-budget").innerText = `₹${userBudget.toLocaleString()}`;
-        if($("display-paid")) $("display-paid").innerText = `₹${totalPaid.toLocaleString()}`;
-        if($("display-due")) $("display-due").innerText = `₹${totalDue.toLocaleString()}`;
-        if($("display-balance")) $("display-balance").innerText = `₹${remaining.toLocaleString()}`;
+        if($("display-budget")) $("display-budget").innerText = `₹${userBudget.toLocaleString('en-IN')}`;
+        if($("display-paid")) $("display-paid").innerText = `₹${totalPaid.toLocaleString('en-IN')}`;
+        if($("display-due")) $("display-due").innerText = `₹${totalDue.toLocaleString('en-IN')}`;
+        if($("display-balance")) $("display-balance").innerText = remaining < 0 
+            ? `-₹${Math.abs(remaining).toLocaleString('en-IN')}` 
+            : `₹${remaining.toLocaleString('en-IN')}`;
 
         // Budget Message & Warnings
         const msg = $("budget-msg");
@@ -154,11 +183,13 @@ function runDashboardLogic() {
         }
 
         // Budget Overview Card
-        if($("budget-overview-total")) $("budget-overview-total").innerText = `₹${userBudget.toLocaleString()}`;
-        if($("budget-overview-spent")) $("budget-overview-spent").innerText = `₹${totalPaid.toLocaleString()}`;
+        if($("budget-overview-total")) $("budget-overview-total").innerText = `₹${userBudget.toLocaleString('en-IN')}`;
+        if($("budget-overview-spent")) $("budget-overview-spent").innerText = `₹${totalPaid.toLocaleString('en-IN')}`;
         if($("budget-overview-pct")) $("budget-overview-pct").innerText = `${usedPercent}%`;
         if($("budget-overview-remaining")) {
-            $("budget-overview-remaining").innerText = `₹${remaining.toLocaleString()}`;
+            $("budget-overview-remaining").innerText = remaining < 0 
+                ? `-₹${Math.abs(remaining).toLocaleString('en-IN')}` 
+                : `₹${remaining.toLocaleString('en-IN')}`;
             $("budget-overview-remaining").style.color = remaining < 0 ? "#ef4444" : "#22c55e";
         }
 
@@ -296,6 +327,43 @@ function runDashboardLogic() {
     $("filterUnpaidBills")?.addEventListener("click", () => { activeFilter = 'UNPAID'; updateFilterStyles("filterUnpaidBills"); renderBills(); });
     $("filterPaidBills")?.addEventListener("click", () => { activeFilter = 'PAID'; updateFilterStyles("filterPaidBills"); renderBills(); });
 
+    // --- ADD BILL BUTTON SMOOTH NAVIGATION & HIGHLIGHT ---
+    function scrollToAndFocusAddBill() {
+        const formCard = $("add-bill-form")?.closest('.card') || $("add-bill-form");
+        const billNameInput = $("bill-name");
+        if (!formCard || !billNameInput) return;
+
+        const header = document.querySelector('.top-header');
+        const headerOffset = header ? header.offsetHeight + 24 : 80;
+        const rect = formCard.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const targetY = Math.max(0, rect.top + scrollTop - headerOffset);
+
+        window.scrollTo({
+            top: targetY,
+            behavior: 'smooth'
+        });
+
+        formCard.classList.remove('highlight-pulse');
+        void formCard.offsetWidth; // Trigger reflow for animation restart
+        formCard.classList.add('highlight-pulse');
+
+        setTimeout(() => {
+            billNameInput.focus();
+            billNameInput.select?.();
+        }, 380);
+    }
+
+    $("openAddBillModalBtn")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        scrollToAndFocusAddBill();
+    });
+
+    $("sidebarUploadBtn")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        scrollToAndFocusAddBill();
+    });
+
     // --- BUDGET MODAL LOGIC ---
     const budgetModal = $("budgetModal");
     const openBudgetBtn = $("openBudgetBtn");
@@ -304,24 +372,31 @@ function runDashboardLogic() {
     const budgetInput = $("new-budget-input");
 
     if (openBudgetBtn) {
-        openBudgetBtn.onclick = () => {
-            budgetInput.value = userBudget; 
-            budgetModal.style.display = "flex"; 
+        openBudgetBtn.onclick = (e) => {
+            e.preventDefault();
+            if (budgetInput) budgetInput.value = userBudget; 
+            if (budgetModal) budgetModal.style.display = "flex"; 
         };
     }
 
     if (closeBudgetBtn) {
-        closeBudgetBtn.onclick = () => budgetModal.style.display = "none";
+        closeBudgetBtn.onclick = () => { if (budgetModal) budgetModal.style.display = "none"; };
     }
 
     if (saveBudgetBtn) {
         saveBudgetBtn.onclick = () => {
-            const val = Number(budgetInput.value);
-            if (val > 0) {
+            const raw = budgetInput ? String(budgetInput.value).trim() : '';
+            const val = parseFloat(raw);
+            if (!isNaN(val) && isFinite(val) && val > 0) {
                 userBudget = val;
-                localStorage.setItem("userBudget", val);
+                localStorage.setItem("userBudget", String(val));
+                try {
+                    const rawSettings = JSON.parse(localStorage.getItem("userSettings") || "{}");
+                    rawSettings.budget = val;
+                    localStorage.setItem("userSettings", JSON.stringify(rawSettings));
+                } catch (_) {}
                 updateDashboard();
-                budgetModal.style.display = "none";
+                if (budgetModal) budgetModal.style.display = "none";
             } else {
                 alert("Please enter a valid monthly budget greater than ₹0.");
             }
@@ -359,6 +434,13 @@ function runDashboardLogic() {
                 return;
             }
 
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            const origText = submitBtn ? submitBtn.innerText : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Saving...';
+            }
+
             try {
                 const res = await fetch(`${API_URL}/${id}`, {
                     method: 'PUT',
@@ -368,14 +450,28 @@ function runDashboardLogic() {
 
                 if (res.ok) {
                     if (editModal) editModal.classList.remove("active");
-                    fetchBills();
+                    await fetchBills();
+                } else if (res.status === 401) {
+                    alert("Your session has expired. Please log in again.");
+                    if (window.logoutBillmate) {
+                        window.logoutBillmate('Your session has expired. Please log in again.');
+                    } else {
+                        localStorage.removeItem('billmateToken');
+                        window.location.href = 'login.html';
+                    }
                 } else {
                     const errData = await res.json().catch(() => ({}));
-                    alert(errData.error || "Failed to update bill.");
+                    const msg = (window.extractApiErrorMessage && window.extractApiErrorMessage(errData)) || errData.error || errData.message || `Failed to update bill (${res.status}).`;
+                    alert(msg);
                 }
             } catch (err) {
                 console.error("Edit bill error:", err);
-                alert("Network error updating bill.");
+                alert(`Cannot reach BillMate server at ${BASE_URL}. Please check your connection.`);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = origText;
+                }
             }
         };
     }
@@ -451,6 +547,13 @@ function runDashboardLogic() {
                 return;
             }
 
+            const submitBtn = $("add-bill-form").querySelector('button[type="submit"]');
+            const origHtml = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Adding...';
+            }
+
             const newBill = { name, amount, category, date, status: "Unpaid" };
             try {
                 const response = await fetch(API_URL, { 
@@ -459,14 +562,36 @@ function runDashboardLogic() {
                     body: JSON.stringify(newBill) 
                 });
                 if (response.ok) { 
+                    clearConnectionError();
                     e.target.reset(); 
-                    fetchBills(); 
+                    await fetchBills(); 
+                    if (window.refreshBillmateNotifications) {
+                        window.refreshBillmateNotifications();
+                    }
+                } else if (response.status === 401) {
+                    alert("Your session has expired. Please log in again.");
+                    if (window.logoutBillmate) {
+                        window.logoutBillmate('Your session has expired. Please log in again.');
+                    } else {
+                        localStorage.removeItem('billmateToken');
+                        window.location.href = 'login.html';
+                    }
                 } else {
                     const errData = await response.json().catch(() => ({}));
-                    alert(errData.error || "Failed to add bill.");
+                    const msg = (window.extractApiErrorMessage && window.extractApiErrorMessage(errData)) 
+                        || errData.error || errData.message || errData.msg 
+                        || `Failed to add bill (${response.status}).`;
+                    alert(msg);
                 }
             } catch (err) {
-                alert("Network error adding bill.");
+                console.error("Add bill network error:", err);
+                alert(`Cannot reach BillMate server at ${BASE_URL}. Please verify the backend is running.`);
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origHtml;
+                    if (window.lucide) lucide.createIcons();
+                }
             }
         };
     }
@@ -475,7 +600,14 @@ function runDashboardLogic() {
     window.toggleBill = async (id) => {
         try {
             const res = await fetch(`${API_URL}/${id}`, { method: 'PUT', headers: getAuthHeaders() });
-            if (res.ok) fetchBills();
+            if (res.ok) {
+                await fetchBills();
+                if (window.refreshBillmateNotifications) {
+                    window.refreshBillmateNotifications();
+                }
+            } else if (res.status === 401) {
+                window.logoutBillmate ? window.logoutBillmate('Your session has expired. Please log in again.') : window.location.href = 'login.html';
+            }
         } catch (err) {
             console.error("Toggle bill error:", err);
         }
@@ -485,7 +617,11 @@ function runDashboardLogic() {
         if (!confirm("Are you sure you want to delete this bill?")) return;
         try {
             const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
-            if (res.ok) fetchBills();
+            if (res.ok) {
+                await fetchBills();
+            } else if (res.status === 401) {
+                window.logoutBillmate ? window.logoutBillmate('Your session has expired. Please log in again.') : window.location.href = 'login.html';
+            }
         } catch (err) {
             console.error("Delete bill error:", err);
         }

@@ -14,10 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const BASE_URL = window.BILLMATE_API_BASE_URL ||
-      ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-        ? "http://localhost:5000"
-        : "https://billmate-backend.onrender.com");
+    const BASE_URL = (typeof window.getBillmateApiBase === 'function')
+      ? window.getBillmateApiBase()
+      : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
 
     try {
       const res = await fetch(`${BASE_URL}/contact`, {

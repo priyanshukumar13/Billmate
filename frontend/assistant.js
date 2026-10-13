@@ -5,10 +5,9 @@
   =========================== */
 
   function getBaseUrl() {
-    return window.BILLMATE_API_BASE_URL ||
-      ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-        ? "http://localhost:5000"
-        : "https://billmate-backend.onrender.com");
+    return (typeof window.getBillmateApiBase === 'function')
+      ? window.getBillmateApiBase()
+      : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
   }
 
   async function callAI(message) {

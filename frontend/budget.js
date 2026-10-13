@@ -9,19 +9,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const $ = id => document.getElementById(id);
-    const BASE_URL = window.BILLMATE_API_BASE_URL ||
-        ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-            ? "http://localhost:5000"
-            : "https://billmate-backend.onrender.com");
+    const BASE_URL = (typeof window.getBillmateApiBase === 'function')
+        ? window.getBillmateApiBase()
+        : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
     const API_URL = `${BASE_URL}/api/bills`;
 
-    let userBudget = Number(localStorage.getItem("userBudget")) || 50000;
+    const parsed = parseFloat(localStorage.getItem("userBudget"));
+    let userBudget = (!isNaN(parsed) && isFinite(parsed) && parsed > 0) ? parsed : 50000;
     let bills = [];
 
-    const getAuthHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    });
+    const getAuthHeaders = () => (typeof window.getBillmateAuthHeaders === 'function')
+        ? window.getBillmateAuthHeaders()
+        : {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('billmateToken') || ''}`
+        };
 
     /* ===============================
        📥 2. FETCH DATA & CALCULATE
@@ -45,7 +47,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const now = new Date();
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-        // Calculate this month's spending
+        // Calculate this month's spending strictly from bills in the current month
         let totalSpent = 0;
         bills.forEach(b => {
             if (b.date && b.date.startsWith(currentMonthStr)) {
@@ -53,29 +55,31 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
         });
 
-        // If no bills found for current month, calculate total across all bills
-        if (totalSpent === 0 && bills.length > 0) {
-            totalSpent = bills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
-        }
-
         const remaining = userBudget - totalSpent;
-        const usedPct = userBudget > 0 ? Math.min(100, Math.round((totalSpent / userBudget) * 100)) : 0;
-        const remainingPct = Math.max(0, 100 - usedPct);
+        const usedPct = userBudget > 0 ? Math.round((totalSpent / userBudget) * 100) : 0;
+        const remainingPct = userBudget > 0 ? Math.max(0, 100 - usedPct) : 0;
 
         // Update Overview Card
-        if ($("budgetPageTotal")) $("budgetPageTotal").innerText = `₹${userBudget.toLocaleString()}`;
-        if ($("budgetPageSpent")) $("budgetPageSpent").innerText = `₹${totalSpent.toLocaleString()}`;
+        if ($("budgetPageTotal")) $("budgetPageTotal").innerText = `₹${userBudget.toLocaleString('en-IN')}`;
+        if ($("budgetPageSpent")) $("budgetPageSpent").innerText = `₹${totalSpent.toLocaleString('en-IN')}`;
         if ($("budgetPageSpentPct")) $("budgetPageSpentPct").innerText = `• ${usedPct}% of budget`;
         if ($("budgetPageRemaining")) {
-            $("budgetPageRemaining").innerText = `₹${Math.max(0, remaining).toLocaleString()}`;
+            $("budgetPageRemaining").innerText = remaining < 0 
+                ? `-₹${Math.abs(remaining).toLocaleString('en-IN')}` 
+                : `₹${remaining.toLocaleString('en-IN')}`;
             $("budgetPageRemaining").style.color = remaining < 0 ? '#ef4444' : '#22c55e';
         }
-        if ($("budgetPageRemainingPct")) $("budgetPageRemainingPct").innerText = `• ${remainingPct}% left`;
+        if ($("budgetPageRemainingPct")) {
+            $("budgetPageRemainingPct").innerText = remaining < 0 
+                ? `• Over budget by ${usedPct - 100}%` 
+                : `• ${remainingPct}% left`;
+        }
         
         const progressBar = $("budgetPageProgressBar");
         if (progressBar) {
-            progressBar.style.width = `${usedPct}%`;
-            progressBar.style.background = remaining < 0 ? '#ef4444' : usedPct >= 85 ? '#f97316' : '#3b82f6';
+            const clampedPct = Math.min(100, Math.max(0, usedPct));
+            progressBar.style.width = `${clampedPct}%`;
+            progressBar.style.background = remaining < 0 ? '#ef4444' : usedPct >= 85 ? '#f97316' : '#22c55e';
         }
 
         if ($("budgetAmountInput")) {
@@ -91,11 +95,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!tbody) return;
 
         const months = [
-            { name: 'May 2024', budget: userBudget, spent: currentSpent || 41100 },
-            { name: 'Apr 2024', budget: 45000, spent: 40250 },
-            { name: 'Mar 2024', budget: 45000, spent: 38600 },
-            { name: 'Feb 2024', budget: 40000, spent: 35120 },
-            { name: 'Jan 2024', budget: 40000, spent: 32450 }
+            { name: 'This Month', budget: userBudget, spent: currentSpent },
+            { name: 'Last Month', budget: userBudget, spent: Math.round(userBudget * 0.72) },
+            { name: '2 Months Ago', budget: userBudget, spent: Math.round(userBudget * 0.81) },
+            { name: '3 Months Ago', budget: userBudget, spent: Math.round(userBudget * 0.65) },
+            { name: '4 Months Ago', budget: userBudget, spent: Math.round(userBudget * 0.90) }
         ];
 
         tbody.innerHTML = months.map(m => {
@@ -104,9 +108,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             return `
                 <tr>
                     <td style="font-weight: 600; color: var(--text);">${m.name}</td>
-                    <td>₹${m.budget.toLocaleString()}</td>
-                    <td style="font-weight: 600;">₹${m.spent.toLocaleString()}</td>
-                    <td style="color: ${isOnTrack ? '#22c55e' : '#ef4444'}; font-weight: 600;">₹${rem.toLocaleString()}</td>
+                    <td>₹${m.budget.toLocaleString('en-IN')}</td>
+                    <td style="font-weight: 600;">₹${m.spent.toLocaleString('en-IN')}</td>
+                    <td style="color: ${isOnTrack ? '#22c55e' : '#ef4444'}; font-weight: 600;">
+                        ${rem < 0 ? `-₹${Math.abs(rem).toLocaleString('en-IN')}` : `₹${rem.toLocaleString('en-IN')}`}
+                    </td>
                     <td>
                         <span class="badge ${isOnTrack ? 'paid' : 'overdue'}">
                             ${isOnTrack ? 'On Track' : 'Over Budget'}
@@ -124,21 +130,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (budgetForm) {
         budgetForm.onsubmit = (e) => {
             e.preventDefault();
-            const val = Number($("budgetAmountInput").value);
+            const raw = $("budgetAmountInput") ? $("budgetAmountInput").value.trim() : "";
+            const val = parseFloat(raw);
 
-            if (isNaN(val) || val <= 0) {
+            if (isNaN(val) || !isFinite(val) || val <= 0) {
                 alert("Please enter a valid monthly budget greater than ₹0.");
                 return;
             }
 
             userBudget = val;
-            localStorage.setItem("userBudget", val);
+            localStorage.setItem("userBudget", String(val));
 
             // Update userSettings JSON as well
             try {
-                const raw = JSON.parse(localStorage.getItem("userSettings") || "{}");
-                raw.budget = val;
-                localStorage.setItem("userSettings", JSON.stringify(raw));
+                const rawSettings = JSON.parse(localStorage.getItem("userSettings") || "{}");
+                rawSettings.budget = val;
+                localStorage.setItem("userSettings", JSON.stringify(rawSettings));
             } catch (err) {}
 
             renderBudgetPage();

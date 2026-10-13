@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileText, CheckCircle, AlertTriangle, Save, Loader2, Sparkles } from 'lucide-react';
+import { getApiBaseUrl, getAuthToken } from '../apiConfig';
 
 export default function ReceiptScanner() {
   const [file, setFile] = useState(null);
@@ -16,12 +17,8 @@ export default function ReceiptScanner() {
   const [category, setCategory] = useState('Bills');
   const [notes, setNotes] = useState('');
 
-  const BASE_URL = window.BILLMATE_API_BASE_URL ||
-    ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-      ? "http://localhost:5000"
-      : "https://billmate-backend.onrender.com");
-
-  const token = localStorage.getItem("billmateToken");
+  const BASE_URL = getApiBaseUrl();
+  const token = getAuthToken();
 
   const onDrop = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;

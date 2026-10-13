@@ -9,19 +9,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const $ = id => document.getElementById(id);
-    const BASE_URL = window.BILLMATE_API_BASE_URL ||
-        ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-            ? "http://localhost:5000"
-            : "https://billmate-backend.onrender.com");
+    const BASE_URL = (typeof window.getBillmateApiBase === 'function')
+        ? window.getBillmateApiBase()
+        : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
     const API_URL = `${BASE_URL}/api/bills`;
 
     let bills = [];
     let activeFilter = 'ALL'; // 'ALL' | 'UNPAID' | 'PAID' | 'OVERDUE'
 
-    const getAuthHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    });
+    const getAuthHeaders = () => (typeof window.getBillmateAuthHeaders === 'function')
+        ? window.getBillmateAuthHeaders()
+        : {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('billmateToken') || ''}`
+        };
 
     /* ===============================
        📥 2. FETCH BILLS FROM API
@@ -34,12 +35,23 @@ document.addEventListener("DOMContentLoaded", async () => {
                 populateMonthFilter();
                 renderBills();
             } else if (response.status === 401) {
-                window.logoutBillmate ? window.logoutBillmate() : window.location.href = 'login.html';
+                if (window.logoutBillmate) {
+                    window.logoutBillmate('Your session has expired. Please log in again.');
+                } else {
+                    localStorage.removeItem('billmateToken');
+                    window.location.href = 'login.html';
+                }
             } else {
-                console.error("Failed to fetch bills. Status:", response.status);
+                const errData = await response.json().catch(() => ({}));
+                const msg = (window.extractApiErrorMessage && window.extractApiErrorMessage(errData)) || errData.error || errData.message || `Failed to fetch bills (${response.status}).`;
+                console.error("Failed to fetch bills:", msg);
             }
         } catch (error) {
             console.error("Error connecting to API:", error);
+            const tbody = $("billsTableBody");
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#ef4444;">⚠️ Cannot connect to BillMate server at <code>${BASE_URL}</code>. Please make sure the backend is running.</td></tr>`;
+            }
         }
     }
 
@@ -258,7 +270,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 headers: getAuthHeaders()
             });
             if (res.ok) {
-                fetchBills();
+                await fetchBills();
+            } else if (res.status === 401) {
+                window.logoutBillmate ? window.logoutBillmate('Your session has expired. Please log in again.') : window.location.href = 'login.html';
             }
         } catch (e) {
             console.error("Toggle bill error:", e);
@@ -273,7 +287,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 headers: getAuthHeaders()
             });
             if (res.ok) {
-                fetchBills();
+                await fetchBills();
+            } else if (res.status === 401) {
+                window.logoutBillmate ? window.logoutBillmate('Your session has expired. Please log in again.') : window.location.href = 'login.html';
             }
         } catch (e) {
             console.error("Delete bill error:", e);
@@ -347,6 +363,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        const submitBtn = $("modal-add-bill-form").querySelector('button[type="submit"]');
+        const origText = submitBtn ? submitBtn.innerText : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Adding...';
+        }
+
         try {
             const res = await fetch(API_URL, {
                 method: 'POST',
@@ -357,14 +380,30 @@ document.addEventListener("DOMContentLoaded", async () => {
             if (res.ok) {
                 if (addModal) addModal.classList.remove("active");
                 $("modal-add-bill-form").reset();
-                fetchBills();
+                await fetchBills();
+            } else if (res.status === 401) {
+                alert("Your session has expired. Please log in again.");
+                if (window.logoutBillmate) {
+                    window.logoutBillmate('Your session has expired. Please log in again.');
+                } else {
+                    localStorage.removeItem('billmateToken');
+                    window.location.href = 'login.html';
+                }
             } else {
                 const errData = await res.json().catch(() => ({}));
-                alert(errData.error || "Failed to add bill.");
+                const msg = (window.extractApiErrorMessage && window.extractApiErrorMessage(errData)) 
+                    || errData.error || errData.message || errData.msg 
+                    || `Failed to add bill (${res.status}).`;
+                alert(msg);
             }
         } catch (err) {
             console.error("Add bill error:", err);
-            alert("Network error adding bill.");
+            alert(`Cannot reach BillMate server at ${BASE_URL}. Please ensure backend is running.`);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = origText;
+            }
         }
     });
 
@@ -382,6 +421,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        const submitBtn = $("modal-edit-bill-form").querySelector('button[type="submit"]');
+        const origText = submitBtn ? submitBtn.innerText : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Saving...';
+        }
+
         try {
             const res = await fetch(`${API_URL}/${id}`, {
                 method: 'PUT',
@@ -391,14 +437,30 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             if (res.ok) {
                 if (editModal) editModal.classList.remove("active");
-                fetchBills();
+                await fetchBills();
+            } else if (res.status === 401) {
+                alert("Your session has expired. Please log in again.");
+                if (window.logoutBillmate) {
+                    window.logoutBillmate('Your session has expired. Please log in again.');
+                } else {
+                    localStorage.removeItem('billmateToken');
+                    window.location.href = 'login.html';
+                }
             } else {
                 const errData = await res.json().catch(() => ({}));
-                alert(errData.error || "Failed to update bill.");
+                const msg = (window.extractApiErrorMessage && window.extractApiErrorMessage(errData)) 
+                    || errData.error || errData.message || errData.msg 
+                    || `Failed to update bill (${res.status}).`;
+                alert(msg);
             }
         } catch (err) {
             console.error("Edit bill error:", err);
-            alert("Network error updating bill.");
+            alert(`Cannot reach BillMate server at ${BASE_URL}. Please check your connection.`);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = origText;
+            }
         }
     });
 

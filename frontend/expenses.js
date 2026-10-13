@@ -9,19 +9,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const $ = id => document.getElementById(id);
-    const BASE_URL = window.BILLMATE_API_BASE_URL ||
-        ((window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-            ? "http://localhost:5000"
-            : "https://billmate-backend.onrender.com");
+    const BASE_URL = (typeof window.getBillmateApiBase === 'function')
+        ? window.getBillmateApiBase()
+        : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
     const API_URL = `${BASE_URL}/api/bills`;
 
     let allBills = [];
     let barChartInstance = null;
 
-    const getAuthHeaders = () => ({
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-    });
+    const getAuthHeaders = () => (typeof window.getBillmateAuthHeaders === 'function')
+        ? window.getBillmateAuthHeaders()
+        : {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('billmateToken') || ''}`
+        };
 
     /* ===============================
        📥 2. FETCH DATA FROM API
