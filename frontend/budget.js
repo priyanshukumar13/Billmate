@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const $ = id => document.getElementById(id);
     const BASE_URL = (typeof window.getBillmateApiBase === 'function')
         ? window.getBillmateApiBase()
-        : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
+        : (window.BILLMATE_API_BASE_URL || "https://billmate-backend.onrender.com");
     const API_URL = `${BASE_URL}/api/bills`;
 
     const parsed = parseFloat(localStorage.getItem("userBudget"));

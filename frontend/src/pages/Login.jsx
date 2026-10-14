@@ -52,34 +52,44 @@ function InlineMessage({ message, type = 'error' }) {
 function SegmentedOtpInput({ value, onChange, disabled }) {
   const inputRefs = useRef([]);
 
-  const digits = (value || '').padEnd(6, '').slice(0, 6).split('');
+  const cleanDigits = String(value || '').replace(/\D/g, '').slice(0, 6);
+  const slots = Array.from({ length: 6 }, (_, i) => cleanDigits[i] || '');
 
   const handleChange = (e, index) => {
-    const val = e.target.value.replace(/\D/g, '');
-    if (!val) {
-      // deleted
-      const newOtp = (value || '').slice(0, index) + ' ' + (value || '').slice(index + 1);
-      onChange(newOtp.trimEnd());
+    const rawVal = e.target.value.replace(/\D/g, '');
+    const currentChars = [...slots];
+
+    if (!rawVal) {
+      currentChars[index] = '';
+      onChange(currentChars.join('').trim());
       return;
     }
-    const char = val.slice(-1);
-    const chars = (value || '').split('');
-    while (chars.length < 6) chars.push('');
-    chars[index] = char;
-    const updated = chars.join('').slice(0, 6);
-    onChange(updated);
 
-    // auto advance
+    const lastChar = rawVal.slice(-1);
+    currentChars[index] = lastChar;
+    const nextVal = currentChars.join('').slice(0, 6);
+    onChange(nextVal);
+
     if (index < 5 && inputRefs.current[index + 1]) {
       inputRefs.current[index + 1].focus();
     }
   };
 
   const handleKeyDown = (e, index) => {
-    if (e.key === 'Backspace' && (!digits[index] || digits[index] === ' ')) {
-      if (index > 0 && inputRefs.current[index - 1]) {
+    if (e.key === 'Backspace') {
+      if (!slots[index] && index > 0 && inputRefs.current[index - 1]) {
+        e.preventDefault();
+        const currentChars = [...slots];
+        currentChars[index - 1] = '';
+        onChange(currentChars.join('').trim());
         inputRefs.current[index - 1].focus();
       }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
@@ -105,7 +115,7 @@ function SegmentedOtpInput({ value, onChange, disabled }) {
           inputMode="numeric"
           pattern="[0-9]*"
           maxLength={1}
-          value={digits[idx] && digits[idx] !== ' ' ? digits[idx] : ''}
+          value={slots[idx]}
           onChange={(e) => handleChange(e, idx)}
           onKeyDown={(e) => handleKeyDown(e, idx)}
           disabled={disabled}
@@ -291,8 +301,8 @@ export default function Login() {
     e.preventDefault();
     setFirstLoginError('');
 
-    const cleanOtp = firstLoginOtp.trim();
-    if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+    const cleanOtp = String(firstLoginOtp || '').replace(/\D/g, '').slice(0, 6);
+    if (cleanOtp.length !== 6) {
       setFirstLoginError('Please enter a valid 6-digit verification code.');
       return;
     }
@@ -410,8 +420,8 @@ export default function Login() {
     e.preventDefault();
     setForgotError('');
 
-    const cleanOtp = forgotOtp.trim();
-    if (cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+    const cleanOtp = String(forgotOtp || '').replace(/\D/g, '').slice(0, 6);
+    if (cleanOtp.length !== 6) {
       setForgotError('Please enter the 6-digit security code.');
       return;
     }
@@ -776,7 +786,7 @@ export default function Login() {
                   </button>
                   <button
                     type="submit"
-                    disabled={firstLoginLoading || firstLoginOtp.trim().length !== 6}
+                    disabled={firstLoginLoading || String(firstLoginOtp || '').replace(/\D/g, '').length !== 6}
                     className="flex-1 py-3 bg-gradient-to-r from-[#F5A93B] to-[#E08A27] text-black font-semibold rounded-xl text-sm hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {firstLoginLoading ? 'Verifying…' : 'Verify & Enter'}
@@ -906,7 +916,7 @@ export default function Login() {
                       </button>
                       <button
                         type="submit"
-                        disabled={forgotLoading || forgotOtp.trim().length !== 6}
+                        disabled={forgotLoading || String(forgotOtp || '').replace(/\D/g, '').length !== 6}
                         className="flex-1 py-3 bg-gradient-to-r from-[#F5A93B] to-[#E08A27] text-black font-semibold rounded-xl text-sm hover:shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {forgotLoading ? 'Verifying…' : 'Verify Code'}

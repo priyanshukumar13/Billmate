@@ -22,9 +22,22 @@ const { createNotification } = require('./utils/notificationHelper');
 
 const app = express();
 
+// Trust reverse proxy (Render Cloudflare/Envoy) so express-rate-limit reads real client IP
+app.set('trust proxy', 1);
+
 // ===============================
 // CORS — restrict to known origins
 // ===============================
+const configuredOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+  process.env.NETLIFY_URL,
+]
+  .filter(Boolean)
+  .flatMap(u => String(u).split(','))
+  .map(u => u.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
 const ALLOWED_ORIGINS = [
   'https://billmatex.netlify.app',
   'http://localhost:5173',
@@ -32,13 +45,15 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:5173',
   'http://localhost:5000',
   'http://127.0.0.1:5000',
+  ...configuredOrigins,
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (Postman, mobile, server-to-server)
     if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    const normalized = origin.trim().replace(/\/+$/, '');
+    if (ALLOWED_ORIGINS.includes(normalized)) return callback(null, true);
     // Allow any localhost / 127.0.0.1 port in development
     if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
     // Allow Netlify preview deployments
@@ -47,8 +62,11 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -78,8 +96,12 @@ app.get('/', (_req, res) => {
 // Prevents Mongoose 10-second buffer timeout on cold start.
 // With bufferCommands:false (set below in mongoose.connect), queries throw
 // immediately if not connected. This middleware converts that to a clean 503.
+// Never blocks OPTIONS preflight requests.
 // ===============================
 app.use('/api', (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
   if (mongoose.connection.readyState !== 1) {
     const msg = 'Database service is starting up. Please try again in a few seconds.';
     return res.status(503).json({
@@ -94,16 +116,17 @@ app.use('/api', (req, res, next) => {
 
 // ===============================
 // RATE LIMITING — auth endpoints
-// Prevents brute-force and credential stuffing
+// Prevents brute-force and credential stuffing per client IP
 // ===============================
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 20 : 500,
+  max: process.env.NODE_ENV === 'production' ? 100 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many requests from this IP. Please wait 15 minutes and try again.',
+    message: 'Too many authentication attempts from this IP. Please wait 15 minutes and try again.',
+    msg: 'Too many authentication attempts from this IP. Please wait 15 minutes and try again.',
   },
   skip: (req) => req.method === 'OPTIONS',
 });
@@ -112,12 +135,15 @@ const authLimiter = rateLimit({
 // EMAIL TRANSPORTER (shared factory)
 // ===============================
 function createTransporter() {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return null;
+  const user = process.env.EMAIL_USER ? String(process.env.EMAIL_USER).trim() : '';
+  const rawPass = process.env.EMAIL_PASS ? String(process.env.EMAIL_PASS).trim() : '';
+  const pass = rawPass.replace(/\s+/g, '');
+  if (!user || !pass) return null;
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user,
+      pass,
     },
   });
 }

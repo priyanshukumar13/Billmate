@@ -7,7 +7,7 @@
   function getBaseUrl() {
     return (typeof window.getBillmateApiBase === 'function')
       ? window.getBillmateApiBase()
-      : (window.BILLMATE_API_BASE_URL || "http://localhost:5000");
+      : (window.BILLMATE_API_BASE_URL || "https://billmate-backend.onrender.com");
   }
 
   async function callAI(message) {

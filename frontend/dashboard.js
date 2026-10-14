@@ -48,7 +48,7 @@ function runDashboardLogic() {
     const $ = id => document.getElementById(id);
     const BASE_URL = (typeof window.getBillmateApiBase === 'function')
         ? window.getBillmateApiBase()
-        : (window.BILLMATE_API_BASE_URL || 'http://localhost:5000');
+        : (window.BILLMATE_API_BASE_URL || 'https://billmate-backend.onrender.com');
     const API_URL = `${BASE_URL}/api/bills`;
     
     // Load budget from localStorage or default to 50000

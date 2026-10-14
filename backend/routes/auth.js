@@ -44,6 +44,10 @@ function maskEmail(email) {
   return `${visiblePrefix}****${visibleSuffix}@${domain}`;
 }
 
+function escapeRegex(str) {
+  return String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function validatePasswordPolicy(password) {
   if (!password || typeof password !== 'string') {
     return 'Password is required.';
@@ -144,7 +148,7 @@ router.post('/login', async (req, res) => {
       $or: [
         { email: lowerIdentifier },
         { email: identifier },
-        { username: { $regex: new RegExp(`^${identifier}$`, 'i') } }
+        { username: { $regex: new RegExp(`^${escapeRegex(identifier)}$`, 'i') } }
       ]
     });
 
@@ -354,7 +358,7 @@ router.post('/forgot-password', async (req, res) => {
       $or: [
         { email: lowerIdentifier },
         { email: identifier },
-        { username: { $regex: new RegExp(`^${identifier}$`, 'i') } }
+        { username: { $regex: new RegExp(`^${escapeRegex(identifier)}$`, 'i') } }
       ]
     });
 

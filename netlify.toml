@@ -11,7 +11,8 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20.19.0"
+  NODE_VERSION         = "20.19.0"
+  VITE_API_BASE_URL    = "https://billmate-backend.onrender.com"
 
 # ── Security headers ──────────────────────────────────────────────────────────
 [[headers]]
@@ -27,3 +28,10 @@
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# ── SPA / MPA fallback: Unknown routes → index.html (React Router) ────────────
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+  force  = false   # Only fires when no matching static file exists

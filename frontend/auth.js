@@ -5,30 +5,29 @@
   const EMAIL_KEY = "billmateEmail";
   const AVATAR_KEY = "billmateProfilePicture";
 
+  const CANONICAL_PROD_URL = 'https://billmate-backend.onrender.com';
+  const CANONICAL_LOCAL_URL = 'http://localhost:5000';
+
   // Dynamic API Base URL resolver:
-  // 1. Explicit window global override (window.BILLMATE_API_BASE_URL)
-  // 2. Build-time Vite define (__VITE_API_BASE_URL__) if injected
-  // 3. Local storage override (billmateApiBaseUrl)
-  // 4. Hostname check: localhost / 127.0.0.1 -> http://localhost:5000, otherwise production
+  // 1. Injected Vite define (__VITE_API_BASE_URL__)
+  // 2. Explicit window global override (window.BILLMATE_API_BASE_URL)
+  // 3. Hostname check: localhost / 127.0.0.1 -> http://localhost:5000
+  // 4. Canonical production default -> https://billmate-backend.onrender.com
   window.getBillmateApiBase = function () {
-    if (window.BILLMATE_API_BASE_URL && typeof window.BILLMATE_API_BASE_URL === 'string' && window.BILLMATE_API_BASE_URL.trim() !== '') {
-      return window.BILLMATE_API_BASE_URL.trim().replace(/\/+$/, '');
-    }
     if (typeof window.__VITE_API_BASE_URL__ === 'string' && window.__VITE_API_BASE_URL__.trim() !== '') {
       return window.__VITE_API_BASE_URL__.trim().replace(/\/+$/, '');
     }
-    try {
-      const stored = localStorage.getItem('billmateApiBaseUrl');
-      if (stored && stored.trim() !== '') {
-        return stored.trim().replace(/\/+$/, '');
-      }
-    } catch (_) {}
-
-    const hostname = window.location.hostname;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "http://localhost:5000";
+    if (typeof window.BILLMATE_API_BASE_URL === 'string' && window.BILLMATE_API_BASE_URL.trim() !== '') {
+      return window.BILLMATE_API_BASE_URL.trim().replace(/\/+$/, '');
     }
-    return "https://billmate-backend.onrender.com";
+
+    if (typeof window !== 'undefined' && window.location) {
+      const hostname = window.location.hostname;
+      if (hostname === "localhost" || hostname === "127.0.0.1") {
+        return CANONICAL_LOCAL_URL;
+      }
+    }
+    return CANONICAL_PROD_URL;
   };
 
   window.BILLMATE_API_BASE_URL = window.getBillmateApiBase();
