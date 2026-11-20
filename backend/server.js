@@ -145,13 +145,6 @@ const authLimiter = rateLimit({
 });
 
 // ===============================
-// EMAIL TRANSPORTER (shared factory)
-// ===============================
-function createTransporter() {
-  return emailService.createTransporter();
-}
-
-// ===============================
 // SECURED: Immediate alert email
 // FIXED: Previously had NO auth — any internet user could trigger emails.
 // Now: requires JWT; sends ONLY to the authenticated user's own email
@@ -171,18 +164,12 @@ app.post('/api/bills/send-immediate-alert', authMiddleware, async (req, res) => 
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    const transporter = createTransporter();
-    if (!transporter) {
-      return res.status(503).json({ success: false, message: 'Email service is not configured on this server.' });
-    }
-
     // Sanitize alert text — truncate to prevent abuse
     const sanitizedAlerts = alerts
       .slice(0, 20) // max 20 alerts per email
       .map(a => String(a).trim().slice(0, 200));
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || `"BillMate Alerts" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
+    await emailService.sendEmail({
       to: user.email,
       subject: '⚠️ BillMate: Important Bill Reminders',
       text: `Hello ${user.full_name || 'Valued User'},\n\nYou have the following bill reminders:\n\n${sanitizedAlerts.join('\n')}\n\nLog in to BillMate to manage your payments.\n\nBillMate Team`,
@@ -216,15 +203,15 @@ app.post('/contact', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Message cannot be empty.' });
   }
 
-  const transporter = createTransporter();
-  if (!transporter) {
+  const emailConfig = emailService.getEmailConfigurationStatus();
+  if (!emailConfig.configured) {
     return res.status(503).json({ success: false, message: 'Email service is not configured.' });
   }
 
   try {
-    const to = process.env.CONTACT_TO || process.env.SMTP_USER || process.env.EMAIL_USER;
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM || `"BillMate" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
+    const to = process.env.CONTACT_TO;
+    if (!to) return res.status(503).json({ success: false, message: 'Contact recipient is not configured.' });
+    await emailService.sendEmail({
       to,
       subject: 'New BillMate contact request',
       text: `Name: ${String(name || 'Visitor').trim()}\nEmail: ${String(email || 'not provided').trim()}\n\nMessage:\n${String(message).trim()}`,
@@ -303,10 +290,16 @@ mongoose.connection.on('disconnected', () => {
   setTimeout(connectWithRetry, 5000);
 });
 
-const { verifySmtpConnection } = require('./utils/emailService');
+const { verifyResendConnection } = require('./utils/emailService');
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  verifySmtpConnection();
+  verifyResendConnection().then(result => {
+    if (!result.ok) {
+      console.warn(`Resend configuration incomplete: ${result.missing?.join(', ') || 'unknown'}`);
+    } else {
+      console.log(`Resend email service ready (Mode: ${result.mode})`);
+    }
+  });
 });

@@ -1,52 +1,18 @@
 // backend/utils/emailService.js
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-function getSanitizedCredentials() {
-  const user = String(process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
-  const rawPass = String(process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
-  // Gmail app passwords are often copied with spaces like "abcd efgh ijkl mnop"
-  const pass = rawPass.replace(/\s+/g, '');
-  return { user, pass };
-}
-
-function createTransporter() {
-  const { user, pass } = getSanitizedCredentials();
-  if (!user || !pass) {
-    return null;
-  }
-  const host = String(process.env.SMTP_HOST || '').trim();
-  const port = Number.parseInt(process.env.SMTP_PORT || '', 10);
-  const secureConfigured = String(process.env.SMTP_SECURE || '').trim().toLowerCase();
-  const secure = secureConfigured
-    ? secureConfigured === 'true'
-    : Number.isFinite(port) && port === 465;
-
-  if (host) {
-    return nodemailer.createTransport({
-      host,
-      port: Number.isFinite(port) ? port : 587,
-      secure,
-      auth: { user, pass },
-      connectionTimeout: 15000,
-      greetingTimeout: 15000,
-      socketTimeout: 15000,
-    });
-  }
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 15000,
-  });
+function getConfiguration() {
+  return {
+    apiKey: String(process.env.RESEND_API_KEY || '').trim(),
+    fromEmail: String(process.env.RESEND_FROM_EMAIL || '').trim(),
+  };
 }
 
 function getEmailConfigurationStatus() {
-  const { user, pass } = getSanitizedCredentials();
+  const { apiKey, fromEmail } = getConfiguration();
   const missing = [];
-  if (!user) missing.push(process.env.SMTP_USER ? 'SMTP_USER' : 'EMAIL_USER');
-  if (!pass) missing.push(process.env.SMTP_PASS ? 'SMTP_PASS' : 'EMAIL_PASS');
+  if (!apiKey) missing.push('RESEND_API_KEY');
+  if (!fromEmail) missing.push('RESEND_FROM_EMAIL');
   return {
     configured: missing.length === 0,
     missing,
@@ -54,354 +20,158 @@ function getEmailConfigurationStatus() {
   };
 }
 
-function getSafeEmailDeliveryError(err) {
-  const code = String(err?.code || '').toUpperCase();
-  const responseCode = Number(err?.responseCode);
-
-  if (code === 'EAUTH' || responseCode === 535) {
-    return 'Email service authentication failed. Please try again later.';
-  }
-
-  function getFromAddress(label = 'BillMate Security') {
-    const { user } = getSanitizedCredentials();
-    const configuredFrom = String(process.env.EMAIL_FROM || '').trim();
-    return configuredFrom || `"${label}" <${user}>`;
-  }
-  if (code === 'ETIMEDOUT' || code === 'ESOCKET' || code === 'ECONNECTION') {
-    return 'Email provider connection timed out. Please try again shortly.';
-  }
-  if (code === 'EMESSAGE' || responseCode === 550 || responseCode === 553) {
-    return 'Email provider rejected the sender or recipient configuration.';
-  }
-  return 'Unable to deliver the verification email. Please try again shortly.';
-}
-
-/**
- * Safely log SMTP delivery errors without exposing passwords, OTPs, or message bodies.
- */
-function logSmtpError(context, err) {
-  if (!err) return;
-  const safeInfo = {
-    context: context || 'Email Delivery',
-    code: err.code || 'UNKNOWN',
-    responseCode: err.responseCode || 'N/A',
-    command: err.command || 'N/A',
-    message: err.message ? String(err.message).replace(/[\r\n]+/g, ' ').slice(0, 200) : 'Unknown error',
-  };
-  console.error(`❌ [SMTP Error] ${safeInfo.context}: code=${safeInfo.code}, responseCode=${safeInfo.responseCode}, command=${safeInfo.command} (${safeInfo.message})`);
-}
-
-/**
- * Startup verification check for SMTP connection.
- */
-async function verifySmtpConnection() {
-  const configuration = getEmailConfigurationStatus();
-  const { user } = getSanitizedCredentials();
-  const pass = String(process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
-  if (!user || !pass) {
-    console.warn('⚠️ [SMTP] EMAIL_USER or EMAIL_PASS not configured in environment variables.');
-    return { ok: false, error: 'EMAIL_USER or EMAIL_PASS missing' };
-  }
-
-  const transporter = createTransporter();
-  if (!transporter) {
-    console.warn('⚠️ [SMTP] Transporter could not be created.');
-    return { ok: false, error: 'Transporter creation failed' };
-  }
-
-  try {
-    await transporter.verify();
-    const maskedUser = user.replace(/^(.)(.*)(.@.*)$/, (_, a, b, c) => `${a}***${c}`);
-    console.log(`✅ [SMTP] Transporter successfully verified for ${maskedUser} (Mode: ${process.env.MOCK_EMAIL === 'true' ? 'MOCK' : 'LIVE'})`);
-    return { ok: true };
-  } catch (err) {
-    logSmtpError('Connection Verification', err);
-    return { ok: false, code: err.code, responseCode: err.responseCode };
-  }
-}
-
-function getBaseTemplate({ title, preheader, contentHtml }) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #0b0f19;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #e2e8f0;
-    }
-    .wrapper {
-      max-width: 560px;
-      margin: 30px auto;
-      background: #111827;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-    }
-    .header {
-      padding: 32px 32px 24px;
-      text-align: center;
-      background: linear-gradient(180deg, rgba(245, 158, 11, 0.12) 0%, transparent 100%);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .brand {
-      font-size: 26px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: #f59e0b;
-      display: inline-block;
-      text-decoration: none;
-    }
-    .brand span {
-      color: #10b981;
-    }
-    .body {
-      padding: 32px;
-      font-size: 15px;
-      line-height: 1.6;
-      color: #cbd5e1;
-    }
-    .code-box {
-      margin: 28px 0;
-      padding: 20px;
-      text-align: center;
-      background: #1e293b;
-      border: 1px dashed rgba(245, 158, 11, 0.4);
-      border-radius: 12px;
-    }
-    .otp-code {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 36px;
-      font-weight: 800;
-      letter-spacing: 8px;
-      color: #f59e0b;
-      margin: 0;
-    }
-    .warning {
-      margin-top: 24px;
-      padding: 12px 16px;
-      background: rgba(239, 68, 68, 0.1);
-      border-left: 3px solid #ef4444;
-      border-radius: 6px;
-      font-size: 13px;
-      color: #fca5a5;
-    }
-    .footer {
-      padding: 20px 32px;
-      background: #0d131f;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      text-align: center;
-      font-size: 12px;
-      color: #64748b;
-    }
-  </style>
-</head>
-<body>
-  <div style="display:none;font-size:1px;color:#0b0f19;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
-    ${preheader || title}
-  </div>
-  <div class="wrapper">
-    <div class="header">
-      <div class="brand">Bill<span>Mate</span></div>
-    </div>
-    <div class="body">
-      ${contentHtml}
-    </div>
-    <div class="footer">
-      This is an automated security email from BillMate. If you did not make this request, please secure your account immediately.
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
-/**
- * Checks whether the request should use simulated mock delivery.
- */
 function shouldUseMock(to) {
-  if (String(to).toLowerCase().includes('@fail.test') || process.env.FORCE_EMAIL_ERROR === 'true') {
-    return false; // Will trigger simulated failure check
-  }
-  if (process.env.MOCK_EMAIL === 'true') {
-    return true;
-  }
-  // In test mode, only mock simulated test addresses ending in @example.com
-  if (process.env.NODE_ENV === 'test' && String(to).toLowerCase().includes('@example.com')) {
-    return true;
-  }
+  if (process.env.MOCK_EMAIL === 'true') return true;
+  if (String(to).toLowerCase().includes('@fail.test') || process.env.FORCE_EMAIL_ERROR === 'true') return false;
+  if (process.env.NODE_ENV === 'test' && String(to).toLowerCase().includes('@example.com')) return true;
   return false;
 }
 
-/**
- * Send First-Time Login OTP Verification Email
- */
-async function sendFirstLoginOtp({ to, otp, fullName = 'Valued User', expiryMinutes = 5 }) {
-  if (String(to).toLowerCase().includes('@fail.test') || process.env.FORCE_EMAIL_ERROR === 'true') {
-    throw new Error('Simulated email provider network failure');
-  }
+function logResendError(context, error) {
+  const safeError = error && typeof error === 'object' ? error : { message: String(error || 'Unknown Resend error') };
+  const code = safeError.code || safeError.name || 'RESEND_ERROR';
+  const message = String(safeError.message || 'Unknown error').replace(/[\r\n]+/g, ' ').slice(0, 200);
+  console.error(`Email provider error [${context}]: code=${code} message=${message}`);
+}
 
+function getSafeEmailDeliveryError(error) {
+  const code = String(error?.code || error?.name || '').toUpperCase();
+  const statusCode = Number(error?.statusCode);
+  if (statusCode === 401 || code === 'UNAUTHORIZED') return 'Email provider authentication failed. Please try again later.';
+  if (statusCode === 429 || code === 'RATE_LIMITED') return 'Email provider rate limit reached. Please try again shortly.';
+  if (statusCode >= 500 || code === 'ETIMEDOUT') return 'Email provider is temporarily unavailable. Please try again shortly.';
+  return 'Unable to deliver the email. Please try again shortly.';
+}
+
+function getResendClient() {
+  const { apiKey } = getConfiguration();
+  if (!apiKey) return null;
+  return new Resend(apiKey);
+}
+
+async function sendEmail({ to, subject, text, html }) {
   if (shouldUseMock(to)) {
-    console.log(`[Email Mock] Simulated First-Login OTP delivery to ${to}`);
+    console.log(`Email provider simulated acceptance for ${to}`);
     return { success: true, mocked: true };
   }
 
-  const transporter = createTransporter();
-  if (!transporter) {
-    throw new Error('Email service is not configured on the server.');
-  }
-
-  const { user } = getSanitizedCredentials();
-
-  const contentHtml = `
-    <h2 style="margin-top:0; color:#f8fafc; font-size:20px;">Verify your first login</h2>
-    <p>Hello <strong>${fullName}</strong>,</p>
-    <p>Welcome to BillMate! To activate your account and complete your first login, please enter the six-digit verification code below:</p>
-    <div class="code-box">
-      <p class="otp-code">${otp}</p>
-    </div>
-    <p style="font-size:14px; color:#94a3b8;">This verification code will expire in <strong>${expiryMinutes} minutes</strong>.</p>
-    <div class="warning">
-      <strong>Security notice:</strong> Never share this code with anyone. BillMate support will never ask for your verification code.
-    </div>
-  `;
-
-  const html = getBaseTemplate({
-    title: 'Verify your BillMate account',
-    preheader: `Your BillMate first-login verification code is ${otp}`,
-    contentHtml,
-  });
-
-  try {
-    const info = await transporter.sendMail({
-      from: getFromAddress('BillMate Security'),
-      to,
-      subject: '🔐 Verify your BillMate account - Login code',
-      text: `Hello ${fullName},\n\nYour BillMate first-login verification code is: ${otp}\n\nThis code will expire in ${expiryMinutes} minutes.\n\nNever share this code with anyone.\n\nBillMate Team`,
-      html,
-    });
-    console.log(`📧 [Email] First-login OTP successfully dispatched to ${to} (MessageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
-  } catch (err) {
-    logSmtpError(`First-Login OTP to ${to}`, err);
-    throw err;
-  }
-}
-
-/**
- * Send Password Reset OTP Email
- */
-async function sendPasswordResetOtp({ to, otp, fullName = 'Valued User', expiryMinutes = 5 }) {
   if (String(to).toLowerCase().includes('@fail.test') || process.env.FORCE_EMAIL_ERROR === 'true') {
-    throw new Error('Simulated email provider network failure');
+    const error = new Error('Simulated Resend provider failure');
+    error.code = 'PROVIDER_FAILURE';
+    throw error;
   }
 
-  if (shouldUseMock(to)) {
-    console.log(`[Email Mock] Simulated Password-Reset OTP delivery to ${to}`);
-    return { success: true, mocked: true };
+  const resend = getResendClient();
+  const { fromEmail } = getConfiguration();
+  if (!resend || !fromEmail) {
+    const error = new Error('Email service is not configured on the server.');
+    error.code = 'MISSING_CONFIGURATION';
+    throw error;
   }
 
-  const transporter = createTransporter();
-  if (!transporter) {
-    throw new Error('Email service is not configured on the server.');
-  }
-
-  const { user } = getSanitizedCredentials();
-
-  const contentHtml = `
-    <h2 style="margin-top:0; color:#f8fafc; font-size:20px;">Password reset request</h2>
-    <p>Hello <strong>${fullName}</strong>,</p>
-    <p>We received a request to reset the password for your BillMate account. Use the six-digit security code below to verify your identity:</p>
-    <div class="code-box">
-      <p class="otp-code">${otp}</p>
-    </div>
-    <p style="font-size:14px; color:#94a3b8;">This code will expire in <strong>${expiryMinutes} minutes</strong>.</p>
-    <div class="warning">
-      <strong>Did not request this?</strong> If you did not request a password reset, you can safely ignore this email. Your existing password will remain secure.
-    </div>
-  `;
-
-  const html = getBaseTemplate({
-    title: 'Reset your BillMate password',
-    preheader: `Your BillMate password reset code is ${otp}`,
-    contentHtml,
+  const { data, error } = await resend.emails.send({
+    from: fromEmail,
+    to: [String(to).trim()],
+    subject,
+    text,
+    html,
   });
 
-  try {
-    const info = await transporter.sendMail({
-      from: getFromAddress('BillMate Security'),
-      to,
-      subject: '🔑 Reset your BillMate password - Security code',
-      text: `Hello ${fullName},\n\nYour BillMate password reset code is: ${otp}\n\nThis code will expire in ${expiryMinutes} minutes.\n\nIf you did not request this, you can safely ignore this email.\n\nBillMate Team`,
-      html,
-    });
-    console.log(`📧 [Email] Password reset OTP successfully dispatched to ${to} (MessageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
-  } catch (err) {
-    logSmtpError(`Password Reset OTP to ${to}`, err);
-    throw err;
+  if (error) {
+    logResendError(subject, error);
+    const providerError = new Error(error.message || 'Resend rejected the email.');
+    providerError.code = error.code || error.name;
+    providerError.statusCode = error.statusCode;
+    throw providerError;
   }
+
+  console.log(`Email accepted by Resend for ${to} (ID: ${data?.id || 'unknown'})`);
+  return { success: true, messageId: data?.id };
 }
 
-/**
- * Send Password Changed Notification Email
- */
+function getBaseTemplate(title, contentHtml) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title></head>
+<body style="margin:0;background:#0b0f19;font-family:Arial,sans-serif;color:#e2e8f0;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:30px 12px;">
+<table role="presentation" width="560" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;background:#111827;border-radius:16px;border:1px solid #263244;">
+<tr><td style="padding:24px;text-align:center;border-bottom:1px solid #263244;"><strong style="font-size:26px;color:#f59e0b;">Bill<span style="color:#10b981;">Mate</span></strong></td></tr>
+<tr><td style="padding:32px;font-size:15px;line-height:1.6;color:#cbd5e1;">${contentHtml}</td></tr>
+<tr><td style="padding:20px 32px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #263244;">BillMate automated security email. Never share verification codes.</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+async function sendFirstLoginOtp({ to, otp, fullName = 'Valued User', expiryMinutes = 10 }) {
+  const subject = 'Verify your BillMate account';
+  const text = `Hello ${fullName},\n\nYour BillMate verification code is: ${otp}\n\nThis code expires in ${expiryMinutes} minutes.\n\nNever share this code with anyone.\n\nBillMate Team`;
+  const html = getBaseTemplate(subject, `
+    <h2 style="margin-top:0;color:#f8fafc;">Verify your first login</h2>
+    <p>Hello <strong>${fullName}</strong>,</p>
+    <p>Enter this verification code to activate your BillMate account:</p>
+    <div style="margin:28px 0;padding:20px;text-align:center;background:#1e293b;border:1px dashed #f59e0b;border-radius:12px;">
+      <strong style="font-size:36px;letter-spacing:8px;color:#f59e0b;">${otp}</strong>
+    </div>
+    <p>This code expires in <strong>${expiryMinutes} minutes</strong>.</p>
+    <p style="color:#fca5a5;">Never share this code with anyone. BillMate support will never ask for it.</p>`);
+  return sendEmail({ to, subject, text, html });
+}
+
+async function sendPasswordResetOtp({ to, otp, fullName = 'Valued User', expiryMinutes = 10 }) {
+  const subject = 'Reset your BillMate password';
+  const text = `Hello ${fullName},\n\nYour BillMate password reset code is: ${otp}\n\nThis code expires in ${expiryMinutes} minutes.\n\nIf you did not request this, ignore this email.\n\nBillMate Team`;
+  const html = getBaseTemplate(subject, `
+    <h2 style="margin-top:0;color:#f8fafc;">Password reset request</h2>
+    <p>Hello <strong>${fullName}</strong>,</p>
+    <p>Use this code to reset your BillMate password:</p>
+    <div style="margin:28px 0;padding:20px;text-align:center;background:#1e293b;border:1px dashed #f59e0b;border-radius:12px;">
+      <strong style="font-size:36px;letter-spacing:8px;color:#f59e0b;">${otp}</strong>
+    </div>
+    <p>This code expires in <strong>${expiryMinutes} minutes</strong>.</p>
+    <p style="color:#fca5a5;">If you did not request this, ignore this email.</p>`);
+  return sendEmail({ to, subject, text, html });
+}
+
 async function sendPasswordChangedNotification({ to, fullName = 'Valued User' }) {
-  if (shouldUseMock(to)) {
-    return { success: true, mocked: true };
-  }
-
-  const transporter = createTransporter();
-  if (!transporter) {
-    return { success: false, error: 'Email service not configured.' };
-  }
-
-  const { user } = getSanitizedCredentials();
-
-  const contentHtml = `
-    <h2 style="margin-top:0; color:#f8fafc; font-size:20px;">Your password has been changed</h2>
+  const subject = 'Your BillMate password has changed';
+  const text = `Hello ${fullName},\n\nYour BillMate password was changed successfully. All existing sessions have been invalidated.\n\nIf you did not perform this change, reset your password immediately.\n\nBillMate Team`;
+  const html = getBaseTemplate(subject, `
+    <h2 style="margin-top:0;color:#f8fafc;">Password changed</h2>
     <p>Hello <strong>${fullName}</strong>,</p>
-    <p>This is confirmation that the password for your BillMate account (<strong>${to}</strong>) was successfully changed.</p>
-    <p>All active sessions have been invalidated as a security precaution. Please log in with your new password.</p>
-    <div class="warning">
-      <strong>Important:</strong> If you did not perform this change, please contact support or immediately reset your password to protect your account.
-    </div>
-  `;
+    <p>Your BillMate password was changed successfully. All existing sessions have been invalidated.</p>
+    <p style="color:#fca5a5;">If you did not perform this change, reset your password immediately.</p>`);
+  return sendEmail({ to, subject, text, html });
+}
 
-  const html = getBaseTemplate({
-    title: 'BillMate password changed',
-    preheader: 'Your BillMate password was recently changed.',
-    contentHtml,
-  });
+async function sendBillReminder({ to, userName, billName, amount, dueDate, stageLabel, daysRemaining }) {
+  let statusDescription;
+  if (daysRemaining > 1) statusDescription = `Days remaining: ${daysRemaining}.`;
+  else if (daysRemaining === 1) statusDescription = 'Due tomorrow.';
+  else if (daysRemaining === 0) statusDescription = 'This bill is due today.';
+  else statusDescription = `Overdue by ${Math.abs(daysRemaining)} day(s).`;
 
-  try {
-    const info = await transporter.sendMail({
-      from: getFromAddress('BillMate Security'),
-      to,
-      subject: '🛡️ Your BillMate password has been changed',
-      text: `Hello ${fullName},\n\nYour BillMate password was successfully changed. All prior sessions have been invalidated.\n\nIf you did not perform this change, please contact support immediately.\n\nBillMate Team`,
-      html,
-    });
-    console.log(`📧 [Email] Password change notice dispatched to ${to}`);
-    return { success: true, messageId: info.messageId };
-  } catch (err) {
-    logSmtpError(`Password Changed Notification to ${to}`, err);
-    return { success: false, error: err.message };
-  }
+  const subject = `BillMate Reminder: ${billName}`;
+  const text = `Hello ${userName || 'Valued User'},\n\n${billName} for ${amount} is due on ${dueDate}. ${statusDescription}\n\nLog in to BillMate to manage this bill.\n\nBillMate Team`;
+  const html = getBaseTemplate(subject, `
+    <h2 style="margin-top:0;color:#f8fafc;">${stageLabel}</h2>
+    <p>Hello <strong>${userName || 'Valued User'}</strong>,</p>
+    <p><strong>${billName}</strong> for <strong>${amount}</strong> is due on <strong>${dueDate}</strong>.</p>
+    <p>${statusDescription}</p>`);
+  return sendEmail({ to, subject, text, html });
+}
+
+async function verifyResendConnection() {
+  const status = getEmailConfigurationStatus();
+  if (!status.configured) return { ok: false, missing: status.missing };
+  return { ok: true, configured: true, mode: status.mode };
 }
 
 module.exports = {
-  createTransporter,
-  verifySmtpConnection,
-  logSmtpError,
   getEmailConfigurationStatus,
   getSafeEmailDeliveryError,
+  verifyResendConnection,
+  sendEmail,
   sendFirstLoginOtp,
   sendPasswordResetOtp,
   sendPasswordChangedNotification,
+  sendBillReminder,
 };

@@ -5,46 +5,28 @@ const Bill = require('./models/Bill');
 const User = require('./models/User');
 require('dotenv').config();
 
-// Create Nodemailer Transporter
-function getTransporter() {
-  return emailService.createTransporter();
-}
-
 // Send formatted reminder email
 const sendEmailAlert = async (toEmail, userName, billName, amount, dueDateStr, stageLabel, daysRemaining) => {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn(`⚠️ Cannot send email reminder for "${billName}": EMAIL_USER or EMAIL_PASS not configured.`);
+  const emailConfig = emailService.getEmailConfigurationStatus();
+  if (!emailConfig.configured && process.env.MOCK_EMAIL !== 'true') {
+    console.warn(`Cannot send reminder for "${billName}": missing ${emailConfig.missing.join(', ')}`);
     return false;
   }
 
-  let statusDescription = '';
-  if (daysRemaining > 1) {
-    statusDescription = `Days remaining: ${daysRemaining}\nPlease make your payment before the due date.`;
-  } else if (daysRemaining === 1) {
-    statusDescription = `Days remaining: 1 (Due tomorrow)\nPlease make your payment soon.`;
-  } else if (daysRemaining === 0) {
-    statusDescription = `⚠️ This bill is due TODAY!\nPlease make your payment today to avoid late fees.`;
-  } else {
-    statusDescription = `🚨 This bill is OVERDUE by ${Math.abs(daysRemaining)} day(s).\nPlease make your payment immediately.`;
-  }
-
-  const subject = `BillMate Reminder: ${billName} ${daysRemaining < 0 ? 'is Overdue' : daysRemaining === 0 ? 'Due Today' : 'Due Soon'}`;
-  const text = `Hello ${userName || 'Valued User'},\n\nYour ${billName} of ₹${amount} is due on ${dueDateStr}.\n\n${statusDescription}\n\nLog in to your dashboard to manage your bills:\nBillMate Team`;
-
-  const mailOptions = {
-    from: process.env.EMAIL_FROM || `"BillMate Reminders" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject,
-    text
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
-    console.log(`📧 Reminder email successfully sent to ${toEmail} for bill: "${billName}" [${stageLabel}]`);
+    await emailService.sendBillReminder({
+      to: toEmail,
+      userName,
+      billName,
+      amount,
+      dueDate: dueDateStr,
+      stageLabel,
+      daysRemaining,
+    });
+    console.log(`Reminder request accepted by Resend for ${toEmail}; bill="${billName}" stage="${stageLabel}"`);
     return true;
   } catch (error) {
-    console.error(`❌ Failed to send email for bill "${billName}":`, error.message);
+    console.error(`Failed to send reminder for bill "${billName}": ${emailService.getSafeEmailDeliveryError(error)}`);
     return false;
   }
 };
@@ -93,7 +75,7 @@ const checkBills = async () => {
           continue;
         }
 
-        const targetEmail = user?.email || process.env.EMAIL_USER;
+        const targetEmail = user?.email;
         if (!targetEmail) continue;
 
         const displayName = user?.full_name || user?.username || 'User';

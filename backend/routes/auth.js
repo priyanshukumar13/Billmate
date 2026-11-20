@@ -740,7 +740,7 @@ router.get('/email-status', auth, async (_req, res) => {
     });
   }
 
-  const result = await emailService.verifySmtpConnection();
+  const result = await emailService.verifyResendConnection();
   if (!result.ok) {
     return res.status(503).json({
       success: false,
