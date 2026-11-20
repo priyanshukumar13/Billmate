@@ -2,8 +2,8 @@
 const nodemailer = require('nodemailer');
 
 function getSanitizedCredentials() {
-  const user = process.env.EMAIL_USER ? String(process.env.EMAIL_USER).trim() : '';
-  const rawPass = process.env.EMAIL_PASS ? String(process.env.EMAIL_PASS).trim() : '';
+  const user = String(process.env.SMTP_USER || process.env.EMAIL_USER || '').trim();
+  const rawPass = String(process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
   // Gmail app passwords are often copied with spaces like "abcd efgh ijkl mnop"
   const pass = rawPass.replace(/\s+/g, '');
   return { user, pass };
@@ -14,10 +14,66 @@ function createTransporter() {
   if (!user || !pass) {
     return null;
   }
+  const host = String(process.env.SMTP_HOST || '').trim();
+  const port = Number.parseInt(process.env.SMTP_PORT || '', 10);
+  const secureConfigured = String(process.env.SMTP_SECURE || '').trim().toLowerCase();
+  const secure = secureConfigured
+    ? secureConfigured === 'true'
+    : Number.isFinite(port) && port === 465;
+
+  if (host) {
+    return nodemailer.createTransport({
+      host,
+      port: Number.isFinite(port) ? port : 587,
+      secure,
+      auth: { user, pass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 15000,
+    });
+  }
+
   return nodemailer.createTransport({
     service: 'gmail',
     auth: { user, pass },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 15000,
   });
+}
+
+function getEmailConfigurationStatus() {
+  const { user, pass } = getSanitizedCredentials();
+  const missing = [];
+  if (!user) missing.push(process.env.SMTP_USER ? 'SMTP_USER' : 'EMAIL_USER');
+  if (!pass) missing.push(process.env.SMTP_PASS ? 'SMTP_PASS' : 'EMAIL_PASS');
+  return {
+    configured: missing.length === 0,
+    missing,
+    mode: process.env.MOCK_EMAIL === 'true' ? 'MOCK' : 'LIVE',
+  };
+}
+
+function getSafeEmailDeliveryError(err) {
+  const code = String(err?.code || '').toUpperCase();
+  const responseCode = Number(err?.responseCode);
+
+  if (code === 'EAUTH' || responseCode === 535) {
+    return 'Email service authentication failed. Please try again later.';
+  }
+
+  function getFromAddress(label = 'BillMate Security') {
+    const { user } = getSanitizedCredentials();
+    const configuredFrom = String(process.env.EMAIL_FROM || '').trim();
+    return configuredFrom || `"${label}" <${user}>`;
+  }
+  if (code === 'ETIMEDOUT' || code === 'ESOCKET' || code === 'ECONNECTION') {
+    return 'Email provider connection timed out. Please try again shortly.';
+  }
+  if (code === 'EMESSAGE' || responseCode === 550 || responseCode === 553) {
+    return 'Email provider rejected the sender or recipient configuration.';
+  }
+  return 'Unable to deliver the verification email. Please try again shortly.';
 }
 
 /**
@@ -39,7 +95,9 @@ function logSmtpError(context, err) {
  * Startup verification check for SMTP connection.
  */
 async function verifySmtpConnection() {
-  const { user, pass } = getSanitizedCredentials();
+  const configuration = getEmailConfigurationStatus();
+  const { user } = getSanitizedCredentials();
+  const pass = String(process.env.SMTP_PASS || process.env.EMAIL_PASS || '').trim();
   if (!user || !pass) {
     console.warn('⚠️ [SMTP] EMAIL_USER or EMAIL_PASS not configured in environment variables.');
     return { ok: false, error: 'EMAIL_USER or EMAIL_PASS missing' };
@@ -221,7 +279,7 @@ async function sendFirstLoginOtp({ to, otp, fullName = 'Valued User', expiryMinu
 
   try {
     const info = await transporter.sendMail({
-      from: `"BillMate Security" <${user}>`,
+      from: getFromAddress('BillMate Security'),
       to,
       subject: '🔐 Verify your BillMate account - Login code',
       text: `Hello ${fullName},\n\nYour BillMate first-login verification code is: ${otp}\n\nThis code will expire in ${expiryMinutes} minutes.\n\nNever share this code with anyone.\n\nBillMate Team`,
@@ -276,7 +334,7 @@ async function sendPasswordResetOtp({ to, otp, fullName = 'Valued User', expiryM
 
   try {
     const info = await transporter.sendMail({
-      from: `"BillMate Security" <${user}>`,
+      from: getFromAddress('BillMate Security'),
       to,
       subject: '🔑 Reset your BillMate password - Security code',
       text: `Hello ${fullName},\n\nYour BillMate password reset code is: ${otp}\n\nThis code will expire in ${expiryMinutes} minutes.\n\nIf you did not request this, you can safely ignore this email.\n\nBillMate Team`,
@@ -323,7 +381,7 @@ async function sendPasswordChangedNotification({ to, fullName = 'Valued User' })
 
   try {
     const info = await transporter.sendMail({
-      from: `"BillMate Security" <${user}>`,
+      from: getFromAddress('BillMate Security'),
       to,
       subject: '🛡️ Your BillMate password has been changed',
       text: `Hello ${fullName},\n\nYour BillMate password was successfully changed. All prior sessions have been invalidated.\n\nIf you did not perform this change, please contact support immediately.\n\nBillMate Team`,
@@ -341,6 +399,8 @@ module.exports = {
   createTransporter,
   verifySmtpConnection,
   logSmtpError,
+  getEmailConfigurationStatus,
+  getSafeEmailDeliveryError,
   sendFirstLoginOtp,
   sendPasswordResetOtp,
   sendPasswordChangedNotification,

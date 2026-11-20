@@ -45,6 +45,7 @@ export default function Signup() {
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
 
     const trimmedName = name.trim();
@@ -59,8 +60,8 @@ export default function Signup() {
       setError('Passwords do not match. Please confirm your password.');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('Password must be at least 8 characters and contain a letter and a number.');
       return;
     }
 
@@ -68,7 +69,7 @@ export default function Signup() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       let res;
       try {

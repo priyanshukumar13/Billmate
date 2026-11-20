@@ -4,7 +4,6 @@ dotenv.config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
@@ -19,6 +18,7 @@ const startCronJob = require('./cronJob');
 const authMiddleware = require('./middleware/auth');
 const User = require('./models/User');
 const { createNotification } = require('./utils/notificationHelper');
+const emailService = require('./utils/emailService');
 
 const app = express();
 
@@ -65,8 +65,10 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 };
 
+// Express 5: app.use(cors(corsOptions)) automatically handles CORS preflight (OPTIONS)
+// for all routes before downstream middleware. The Express 4 `app.options('*', ...)`
+// pattern throws PathError in Express 5 due to path-to-regexp v8 wildcard syntax changes.
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
 
@@ -77,6 +79,17 @@ let lastDbError = null;
 // Responds even during cold start so monitoring tools work
 // ===============================
 app.get('/health', (_req, res) => {
+  const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const dbState = mongoose.connection.readyState;
+  res.json({
+    status: dbState === 1 ? 'ok' : 'starting',
+    db: states[dbState] || 'unknown',
+    dbError: lastDbError ? String(lastDbError).replace(/mongodb(\+srv)?:\/\/[^@]+@/i, 'mongodb+srv://<auth>@') : null,
+    time: new Date().toISOString(),
+  });
+});
+
+app.get('/api/health', (_req, res) => {
   const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
   const dbState = mongoose.connection.readyState;
   res.json({
@@ -135,17 +148,7 @@ const authLimiter = rateLimit({
 // EMAIL TRANSPORTER (shared factory)
 // ===============================
 function createTransporter() {
-  const user = process.env.EMAIL_USER ? String(process.env.EMAIL_USER).trim() : '';
-  const rawPass = process.env.EMAIL_PASS ? String(process.env.EMAIL_PASS).trim() : '';
-  const pass = rawPass.replace(/\s+/g, '');
-  if (!user || !pass) return null;
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user,
-      pass,
-    },
-  });
+  return emailService.createTransporter();
 }
 
 // ===============================
@@ -179,7 +182,7 @@ app.post('/api/bills/send-immediate-alert', authMiddleware, async (req, res) => 
       .map(a => String(a).trim().slice(0, 200));
 
     await transporter.sendMail({
-      from: `"BillMate Alerts" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM || `"BillMate Alerts" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
       to: user.email,
       subject: '⚠️ BillMate: Important Bill Reminders',
       text: `Hello ${user.full_name || 'Valued User'},\n\nYou have the following bill reminders:\n\n${sanitizedAlerts.join('\n')}\n\nLog in to BillMate to manage your payments.\n\nBillMate Team`,
@@ -219,9 +222,9 @@ app.post('/contact', async (req, res) => {
   }
 
   try {
-    const to = process.env.CONTACT_TO || process.env.EMAIL_USER;
+    const to = process.env.CONTACT_TO || process.env.SMTP_USER || process.env.EMAIL_USER;
     await transporter.sendMail({
-      from: `"BillMate" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM || `"BillMate" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
       to,
       subject: 'New BillMate contact request',
       text: `Name: ${String(name || 'Visitor').trim()}\nEmail: ${String(email || 'not provided').trim()}\n\nMessage:\n${String(message).trim()}`,

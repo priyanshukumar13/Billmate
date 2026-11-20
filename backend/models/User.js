@@ -10,7 +10,14 @@ const UserSchema = new mongoose.Schema({
       return (this.email ? this.email.split('@')[0] : '') || this.name || 'user';
     }
   },
-  email: { type: String, required: true, unique: true },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+    match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  },
   full_name: { type: String, required: true, trim: true, default: 'User' },
   name: { type: String, default: '' },
   phone_number: { type: String, default: '' },

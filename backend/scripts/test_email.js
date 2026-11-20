@@ -4,15 +4,15 @@
  * Usage: node scripts/test_email.js [recipient_email]
  */
 require('dotenv').config();
-const nodemailer = require('nodemailer');
+const emailService = require('../utils/emailService');
 
 async function testSmtp() {
   console.log('==============================================');
   console.log('🔍 BillMate SMTP Diagnostics & Test Tool');
   console.log('==============================================');
 
-  const rawUser = process.env.EMAIL_USER || '';
-  const rawPass = process.env.EMAIL_PASS || '';
+  const rawUser = process.env.SMTP_USER || process.env.EMAIL_USER || '';
+  const rawPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || '';
   const mockEmail = process.env.MOCK_EMAIL || 'false';
 
   console.log(`• EMAIL_USER loaded: ${Boolean(rawUser)} (length: ${rawUser.length})`);
@@ -28,13 +28,7 @@ async function testSmtp() {
   const cleanPass = rawPass.trim().replace(/\s+/g, '');
 
   console.log('\n[1/2] Verifying SMTP Transporter Connection...');
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: cleanUser,
-      pass: cleanPass
-    }
-  });
+  const transporter = emailService.createTransporter();
 
   try {
     await transporter.verify();

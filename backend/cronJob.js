@@ -1,22 +1,13 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
-const nodemailer = require('nodemailer');
+const emailService = require('./utils/emailService');
 const Bill = require('./models/Bill');
 const User = require('./models/User');
 require('dotenv').config();
 
 // Create Nodemailer Transporter
 function getTransporter() {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    return null;
-  }
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  return emailService.createTransporter();
 }
 
 // Send formatted reminder email
@@ -42,7 +33,7 @@ const sendEmailAlert = async (toEmail, userName, billName, amount, dueDateStr, s
   const text = `Hello ${userName || 'Valued User'},\n\nYour ${billName} of ₹${amount} is due on ${dueDateStr}.\n\n${statusDescription}\n\nLog in to your dashboard to manage your bills:\nBillMate Team`;
 
   const mailOptions = {
-    from: `"BillMate Reminders" <${process.env.EMAIL_USER}>`,
+    from: process.env.EMAIL_FROM || `"BillMate Reminders" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
     to: toEmail,
     subject,
     text

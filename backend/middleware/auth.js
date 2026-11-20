@@ -34,7 +34,17 @@ module.exports = async function (req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'devsecret');
+    const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'devsecret');
+    if (!jwtSecret) {
+      console.error('JWT verification unavailable: JWT_SECRET is not configured.');
+      return res.status(500).json({
+        success: false,
+        error: 'Authentication is not configured on this server.',
+        message: 'Authentication is not configured on this server.',
+        msg: 'Authentication is not configured on this server.'
+      });
+    }
+    const decoded = jwt.verify(token, jwtSecret);
     if (!decoded || !decoded.user || !decoded.user.id) {
       return res.status(401).json({
         success: false,

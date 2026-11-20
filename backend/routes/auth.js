@@ -8,9 +8,9 @@ const OtpChallenge = require('../models/OtpChallenge');
 const emailService = require('../utils/emailService');
 const auth = require('../middleware/auth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'devsecret';
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'devsecret');
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const OTP_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
 const MAX_OTP_ATTEMPTS = 5;
 
@@ -126,7 +126,14 @@ router.post('/signup', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Signup Error:', err);
+    if (err?.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern || {})[0];
+      const message = duplicateField === 'username'
+        ? 'This username is already taken.'
+        : 'An account with this email already exists.';
+      return res.status(409).json({ success: false, msg: message });
+    }
+    console.error('Signup error:', err.message);
     return res.status(500).json({ success: false, msg: 'Server error during signup. Please try again later.' });
   }
 });
@@ -143,6 +150,11 @@ router.post('/login', async (req, res) => {
   }
 
   try {
+    if (!JWT_SECRET) {
+      console.error('Login rejected: JWT_SECRET is not configured.');
+      return res.status(500).json({ success: false, msg: 'Authentication is not configured on this server.' });
+    }
+
     const lowerIdentifier = identifier.toLowerCase();
     const user = await User.findOne({
       $or: [
@@ -192,15 +204,21 @@ router.post('/login', async (req, res) => {
           to: user.email,
           otp,
           fullName: user.full_name || user.username,
-          expiryMinutes: 5
+          expiryMinutes: 10
         });
       } catch (mailErr) {
         console.error('Failed to send first login OTP email:', mailErr.message);
-        // Do not return successful challenge if mail delivery failed
-        await OtpChallenge.findByIdAndDelete(challenge._id);
+        // Keep the challenge for a safe resend; do not mark the account verified or issue a token.
         return res.status(503).json({
           success: false,
-          msg: 'Unable to deliver verification code email. Please verify email configuration or try again shortly.'
+          requireOtp: true,
+          purpose: 'FIRST_LOGIN',
+          challengeId,
+          emailMasked: maskEmail(user.email),
+          expiresInSeconds: 600,
+          cooldownSeconds: 60,
+          emailDeliveryFailed: true,
+          msg: emailService.getSafeEmailDeliveryError(mailErr)
         });
       }
 
@@ -210,7 +228,7 @@ router.post('/login', async (req, res) => {
         purpose: 'FIRST_LOGIN',
         challengeId,
         emailMasked: maskEmail(user.email),
-        expiresInSeconds: 300,
+        expiresInSeconds: 600,
         cooldownSeconds: 60,
         message: 'First-time login verification code sent to your registered email.',
         msg: 'First-time login verification code sent to your registered email.'
@@ -403,7 +421,7 @@ router.post('/forgot-password', async (req, res) => {
         to: user.email,
         otp,
         fullName: user.full_name || user.username,
-        expiryMinutes: 5
+        expiryMinutes: 10
       });
     } catch (mailErr) {
       console.error('Failed to send forgot password email:', mailErr.message);
@@ -420,7 +438,7 @@ router.post('/forgot-password', async (req, res) => {
       msg: 'If an account exists with this email, a verification code has been sent.',
       challengeId,
       emailMasked: maskEmail(user.email),
-      expiresInSeconds: 300,
+      expiresInSeconds: 600,
       cooldownSeconds: 60
     });
   } catch (err) {
@@ -609,10 +627,6 @@ router.post('/resend-otp', async (req, res) => {
       });
     }
 
-    // Invalidate prior challenge
-    previousChallenge.consumed = true;
-    await previousChallenge.save();
-
     const user = await User.findById(previousChallenge.user_id);
     if (!user) {
       return res.status(404).json({ success: false, msg: 'User account not found.' });
@@ -643,14 +657,14 @@ router.post('/resend-otp', async (req, res) => {
           to: user.email,
           otp,
           fullName: user.full_name || user.username,
-          expiryMinutes: 5
+          expiryMinutes: 10
         });
       } else {
         await emailService.sendPasswordResetOtp({
           to: user.email,
           otp,
           fullName: user.full_name || user.username,
-          expiryMinutes: 5
+          expiryMinutes: 10
         });
       }
     } catch (mailErr) {
@@ -658,15 +672,19 @@ router.post('/resend-otp', async (req, res) => {
       await OtpChallenge.findByIdAndDelete(newChallenge._id);
       return res.status(503).json({
         success: false,
-        msg: 'Email service unavailable. Please try again shortly.'
+        msg: emailService.getSafeEmailDeliveryError(mailErr)
       });
     }
+
+    // Consume the old challenge only after the provider accepts the replacement email.
+    previousChallenge.consumed = true;
+    await previousChallenge.save();
 
     return res.status(200).json({
       success: true,
       challengeId: newChallengeId,
       emailMasked: maskEmail(user.email),
-      expiresInSeconds: 300,
+      expiresInSeconds: 600,
       cooldownSeconds: 60,
       message: 'A new verification code has been sent to your registered email.'
     });
@@ -710,14 +728,33 @@ router.get('/me', auth, async (req, res) => {
 // ===============================
 // 10. EMAIL STATUS DIAGNOSTIC
 // ===============================
-router.get('/email-status', (_req, res) => {
-  const isConfigured = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
-  const mode = process.env.MOCK_EMAIL === 'true' ? 'MOCK' : 'LIVE';
+router.get('/email-status', auth, async (_req, res) => {
+  const configuration = emailService.getEmailConfigurationStatus();
+  if (!configuration.configured) {
+    return res.status(503).json({
+      success: false,
+      emailConfigured: false,
+      missing: configuration.missing,
+      mode: configuration.mode,
+      msg: 'Email service is not configured.'
+    });
+  }
+
+  const result = await emailService.verifySmtpConnection();
+  if (!result.ok) {
+    return res.status(503).json({
+      success: false,
+      emailConfigured: true,
+      mode: configuration.mode,
+      msg: 'Email provider verification failed.',
+      time: new Date().toISOString()
+    });
+  }
+
   return res.status(200).json({
     success: true,
-    emailConfigured: isConfigured,
-    mode,
-    senderMasked: maskEmail(process.env.EMAIL_USER),
+    emailConfigured: true,
+    mode: configuration.mode,
     time: new Date().toISOString()
   });
 });

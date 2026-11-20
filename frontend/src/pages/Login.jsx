@@ -148,7 +148,7 @@ export default function Login() {
   const [firstLoginChallengeId, setFirstLoginChallengeId] = useState('');
   const [firstLoginEmailMasked, setFirstLoginEmailMasked] = useState('');
   const [firstLoginOtp, setFirstLoginOtp] = useState('');
-  const [firstLoginCountdown, setFirstLoginCountdown] = useState(300);
+  const [firstLoginCountdown, setFirstLoginCountdown] = useState(600);
   const [firstLoginCooldown, setFirstLoginCooldown] = useState(60);
   const [firstLoginLoading, setFirstLoginLoading] = useState(false);
   const [firstLoginError, setFirstLoginError] = useState('');
@@ -160,7 +160,7 @@ export default function Login() {
   const [forgotEmailMasked, setForgotEmailMasked] = useState('');
   const [forgotChallengeId, setForgotChallengeId] = useState('');
   const [forgotOtp, setForgotOtp] = useState('');
-  const [forgotCountdown, setForgotCountdown] = useState(300);
+  const [forgotCountdown, setForgotCountdown] = useState(600);
   const [forgotCooldown, setForgotCooldown] = useState(60);
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -222,6 +222,7 @@ export default function Login() {
   // ─── LOGIN SUBMIT ───────────────────────────────────────────────────────────
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
     setNotice('');
 
@@ -234,16 +235,24 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: identifier,
-          email: identifier,
-          usernameOrEmail: identifier,
-          password,
-        }),
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      let res;
+      try {
+        res = await fetch(`${BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: identifier,
+            email: identifier,
+            usernameOrEmail: identifier,
+            password,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       let data = null;
       try { data = await res.json(); } catch (_) { data = null; }
@@ -251,6 +260,17 @@ export default function Login() {
       if (!res.ok) {
         const status = res.status;
         if (status === 503) {
+          if (data?.requireOtp && data?.purpose === 'FIRST_LOGIN' && data?.challengeId) {
+            setFirstLoginChallengeId(data.challengeId);
+            setFirstLoginEmailMasked(data.emailMasked || '');
+            setFirstLoginOtp('');
+            setFirstLoginError(data?.msg || 'Unable to deliver the verification email.');
+            setFirstLoginCountdown(data.expiresInSeconds || 600);
+            setFirstLoginCooldown(data.cooldownSeconds || 60);
+            setShowFirstLoginModal(true);
+            setError('');
+            return;
+          }
           setError(data?.message || data?.msg || 'The server or email service is currently unavailable. Please try again.');
         } else if (status === 429) {
           setError(data?.message || data?.msg || 'Too many login attempts. Please wait 15 minutes and try again.');
@@ -266,7 +286,7 @@ export default function Login() {
         setFirstLoginEmailMasked(data.emailMasked);
         setFirstLoginOtp('');
         setFirstLoginError('');
-        setFirstLoginCountdown(data.expiresInSeconds || 300);
+        setFirstLoginCountdown(data.expiresInSeconds || 600);
         setFirstLoginCooldown(data.cooldownSeconds || 60);
         setShowFirstLoginModal(true);
         return;
@@ -290,7 +310,9 @@ export default function Login() {
         setError('Unexpected authentication response. Please try again.');
       }
     } catch (err) {
-      setError('Unable to reach the server. Please check your connection.');
+      setError(err?.name === 'AbortError'
+        ? 'Login request timed out while the server was waking up. Please try again.'
+        : 'Unable to reach the server. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -364,7 +386,7 @@ export default function Login() {
       }
 
       setFirstLoginChallengeId(data.challengeId);
-      setFirstLoginCountdown(data.expiresInSeconds || 300);
+      setFirstLoginCountdown(data.expiresInSeconds || 600);
       setFirstLoginCooldown(data.cooldownSeconds || 60);
       setFirstLoginOtp('');
     } catch (err) {
@@ -404,7 +426,7 @@ export default function Login() {
 
       setForgotChallengeId(data.challengeId);
       setForgotEmailMasked(data.emailMasked || forgotIdentifier);
-      setForgotCountdown(data.expiresInSeconds || 300);
+      setForgotCountdown(data.expiresInSeconds || 600);
       setForgotCooldown(data.cooldownSeconds || 60);
       setForgotOtp('');
       setForgotStep(2);
@@ -477,7 +499,7 @@ export default function Login() {
       }
 
       setForgotChallengeId(data.challengeId);
-      setForgotCountdown(data.expiresInSeconds || 300);
+      setForgotCountdown(data.expiresInSeconds || 600);
       setForgotCooldown(data.cooldownSeconds || 60);
       setForgotOtp('');
     } catch (err) {
