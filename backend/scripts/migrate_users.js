@@ -2,7 +2,7 @@
 /**
  * Safe Migration Script for Existing Users
  * - Preserves all existing user records, passwords, bills, budgets, and settings.
- * - Safely initializes `is_verified` and `token_version` if not present.
+ * - Safely initializes `token_version` if not present.
  * - Users with existing activity can be migrated or flagged according to policy.
  */
 require('dotenv').config();
@@ -40,12 +40,6 @@ async function migrateUsers() {
 
     if (user.token_version === undefined || user.token_version === null) {
       user.token_version = 0;
-      needsUpdate = true;
-    }
-
-    // Migration policy: if user has no is_verified field, default to false so they verify on next login
-    if (user.is_verified === undefined || user.is_verified === null) {
-      user.is_verified = false;
       needsUpdate = true;
     }
 

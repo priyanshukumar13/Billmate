@@ -113,9 +113,9 @@ export default function Signup() {
         localStorage.setItem('billmateProfilePicture', data?.user?.profile_picture || '');
         window.location.href = 'dashboard.html';
       } else {
-        // First-login verification required: direct user to login screen
+        // Account created: direct user to login screen
         try {
-          sessionStorage.setItem('billmateSignupNotice', 'Account created! Please sign in with your password to complete your first-time email verification.');
+          sessionStorage.setItem('billmateSignupNotice', 'Account created! Please sign in with your password.');
           sessionStorage.setItem('billmatePrefillUser', trimmedEmail);
         } catch (_) {}
         window.location.href = 'login.html';

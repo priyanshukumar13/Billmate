@@ -27,12 +27,8 @@ const UserSchema = new mongoose.Schema({
   email_notifications: { type: Boolean, default: true },
   sms_notifications: { type: Boolean, default: false },
   reminder_days_before: { type: [Number], default: [1, 3] },
-  // Verification and session state
-  is_verified: { type: Boolean, default: false },
+  // Session state
   token_version: { type: Number, default: 0 },
-  // Password reset (OTP) fields
-  passwordResetOtpHash: { type: String, default: null },
-  passwordResetOtpExpires: { type: Date, default: null }
 }, {
   timestamps: {
     createdAt: 'created_at',

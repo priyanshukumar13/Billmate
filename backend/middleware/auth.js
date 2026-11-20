@@ -54,24 +54,13 @@ module.exports = async function (req, res, next) {
       });
     }
 
-    const user = await User.findById(decoded.user.id).select('token_version is_verified email username');
+    const user = await User.findById(decoded.user.id).select('token_version email username');
     if (!user) {
       return res.status(401).json({
         success: false,
         error: 'User not found. Authorization denied.',
         message: 'User not found. Authorization denied.',
         msg: 'User not found. Authorization denied.'
-      });
-    }
-
-    // Enforce first-login verification: unverified users cannot access protected APIs
-    if (user.is_verified === false) {
-      return res.status(403).json({
-        success: false,
-        isUnverified: true,
-        error: 'Account email verification required.',
-        message: 'Account email verification required.',
-        msg: 'Account email verification required.'
       });
     }
 
