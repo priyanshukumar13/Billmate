@@ -24,7 +24,7 @@ const BillSchema = new mongoose.Schema({
   category: { 
     type: String, 
     default: 'Bills',
-    enum: ['Rent', 'Food', 'Bills', 'Utilities', 'Subscription', 'Insurance', 'Other']
+    enum: ['Rent', 'Food', 'Bills', 'Utilities', 'Subscription', 'Insurance', 'Shopping', 'Travel', 'Entertainment', 'Health', 'Other']
   },
   status: { 
     type: String, 
@@ -39,6 +39,30 @@ const BillSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: ''
+  },
+  // Backward-compatible expense tracking fields
+  type: {
+    type: String,
+    enum: ['bill', 'expense'],
+    default: 'bill',
+    index: true
+  },
+  paymentMethod: {
+    type: String,
+    default: 'Other'
+  },
+  sourceApp: {
+    type: String,
+    default: null
+  },
+  transactionFingerprint: {
+    type: String,
+    default: null,
+    index: true
+  },
+  transactionDate: {
+    type: Date,
+    default: null
   },
   // Track reminder notifications to prevent duplicate emails
   reminders: {

@@ -59,6 +59,14 @@ document.addEventListener("DOMContentLoaded", async () => {
        🏷️ 3. STATUS & RELATIVE TIME
     =============================== */
     function getBillStatusInfo(bill) {
+        if (bill.type === 'expense') {
+            const method = bill.paymentMethod ? ` via ${bill.paymentMethod}` : '';
+            return {
+                label: 'Expense',
+                badgeClass: 'badge paid',
+                relativeText: `Paid${method}`
+            };
+        }
         if (bill.status === 'Paid') {
             const paidDateStr = bill.paidDate ? new Date(bill.paidDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
             return {

@@ -7,6 +7,16 @@ const CANONICAL_PROD_URL = 'https://billmate-backend.onrender.com';
 const CANONICAL_LOCAL_URL = 'http://localhost:5000';
 
 function resolveCanonicalBaseUrl() {
+  // Check if running inside native Capacitor Android/iOS
+  if (typeof window !== 'undefined' && window.Capacitor) {
+    if (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+      return CANONICAL_PROD_URL;
+    }
+    if (window.Capacitor.platform === 'android' || window.Capacitor.platform === 'ios') {
+      return CANONICAL_PROD_URL;
+    }
+  }
+
   // 1. Explicit Vite environment variable (canonical build-time config)
   if (typeof import.meta !== 'undefined' && import.meta.env) {
     const envUrl = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim();
@@ -17,6 +27,9 @@ function resolveCanonicalBaseUrl() {
 
   // 2. Vite-injected global define or explicit window override
   if (typeof window !== 'undefined') {
+    if (window.location && window.location.protocol === 'capacitor:') {
+      return CANONICAL_PROD_URL;
+    }
     if (typeof window.__VITE_API_BASE_URL__ === 'string' && window.__VITE_API_BASE_URL__.trim() !== '') {
       return window.__VITE_API_BASE_URL__.trim().replace(/\/+$/, '');
     }

@@ -13,6 +13,8 @@ const copyStaticPlugin = (resolvedApiUrl) => ({
   closeBundle() {
     const staticFiles = [
       'auth.js',
+      'mobile.js',
+      'expense-manager.js',
       'dashboard.js',
       'bills.js',
       'expenses.js',

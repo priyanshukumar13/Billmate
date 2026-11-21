@@ -11,9 +11,20 @@
   // Dynamic API Base URL resolver:
   // 1. Injected Vite define (__VITE_API_BASE_URL__)
   // 2. Explicit window global override (window.BILLMATE_API_BASE_URL)
-  // 3. Hostname check: localhost / 127.0.0.1 -> http://localhost:5000
-  // 4. Canonical production default -> https://billmate-backend.onrender.com
+  // 3. Native Capacitor check: Always target CANONICAL_PROD_URL on native platforms!
+  // 4. Hostname check: localhost / 127.0.0.1 -> http://localhost:5000 (web dev only)
+  // 5. Canonical production default -> https://billmate-backend.onrender.com
   window.getBillmateApiBase = function () {
+    // Check if running inside native Capacitor Android/iOS
+    if (typeof window !== 'undefined' && window.Capacitor) {
+      if (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+        return CANONICAL_PROD_URL;
+      }
+      if (window.Capacitor.platform === 'android' || window.Capacitor.platform === 'ios') {
+        return CANONICAL_PROD_URL;
+      }
+    }
+
     if (typeof window.__VITE_API_BASE_URL__ === 'string' && window.__VITE_API_BASE_URL__.trim() !== '') {
       return window.__VITE_API_BASE_URL__.trim().replace(/\/+$/, '');
     }
@@ -22,6 +33,9 @@
     }
 
     if (typeof window !== 'undefined' && window.location) {
+      if (window.location.protocol === 'capacitor:') {
+        return CANONICAL_PROD_URL;
+      }
       const hostname = window.location.hostname;
       if (hostname === "localhost" || hostname === "127.0.0.1") {
         return CANONICAL_LOCAL_URL;

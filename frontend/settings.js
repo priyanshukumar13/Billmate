@@ -277,4 +277,75 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Initial load
     loadProfile();
+    initAndroidExpenseDetectionSettings();
+
+    /* ===============================
+       📱 9. ANDROID AUTOMATIC EXPENSE DETECTION (MOBILE-ONLY)
+    =============================== */
+    async function initAndroidExpenseDetectionSettings() {
+        const androidCard = $("androidExpenseDetectionCard");
+        if (!androidCard) return;
+
+        // Strict platform detection: Only show inside native Android
+        const isAndroid = (typeof window.isBillmateAndroid === 'function') 
+            ? window.isBillmateAndroid() 
+            : Boolean(window.Capacitor?.isNativePlatform?.() && window.Capacitor?.getPlatform?.() === 'android');
+
+        if (!isAndroid) {
+            androidCard.style.display = 'none';
+            return;
+        }
+
+        androidCard.style.display = 'block';
+
+        const plugin = window.Capacitor?.Plugins?.BillMateExpense;
+        if (!plugin) return;
+
+        async function refreshPermissionUI() {
+            try {
+                const permRes = await plugin.checkNotificationPermission();
+                const isGranted = Boolean(permRes?.isGranted);
+
+                const statusBadge = $("androidNotifStatusBadge");
+                const grantBtn = $("grantNotifAccessBtn");
+
+                if (statusBadge) {
+                    statusBadge.textContent = isGranted ? 'Active ✓' : 'Permission Required';
+                    statusBadge.className = isGranted ? 'badge paid' : 'badge overdue';
+                }
+
+                if (grantBtn) {
+                    grantBtn.style.display = isGranted ? 'none' : 'inline-flex';
+                    grantBtn.onclick = async () => {
+                        await plugin.requestNotificationPermission();
+                    };
+                }
+            } catch (err) {
+                console.warn('[Settings] Error checking permission:', err);
+            }
+        }
+
+        try {
+            await refreshPermissionUI();
+
+            // Refresh permission status when user returns to the app from settings
+            window.addEventListener('focus', refreshPermissionUI);
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') refreshPermissionUI();
+            });
+
+            // Check detection toggle setting
+            const settingRes = await plugin.getDetectionSetting();
+            const isEnabled = settingRes?.enabled !== false;
+            const toggle = $("autoExpenseDetectionToggle");
+            if (toggle) {
+                toggle.checked = isEnabled;
+                toggle.onchange = async () => {
+                    await plugin.setDetectionSetting({ enabled: toggle.checked });
+                };
+            }
+        } catch (err) {
+            console.warn('[Settings] Android detection setup:', err);
+        }
+    }
 });

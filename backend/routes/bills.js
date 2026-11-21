@@ -23,10 +23,14 @@ function getCalculatedStatus(bill) {
   return 'Upcoming';
 }
 
-// --- 1. GET: Fetch ONLY the logged-in user's bills ---
+// --- 1. GET: Fetch ONLY the logged-in user's bills (supports ?type=bill|expense) ---
 router.get('/', auth, async (req, res) => {
   try {
-    const bills = await Bill.find({ user: req.user.id }).sort({ date: 1, createdAt: -1 });
+    const filter = { user: req.user.id };
+    if (req.query.type && ['bill', 'expense'].includes(req.query.type)) {
+      filter.type = req.query.type;
+    }
+    const bills = await Bill.find(filter).sort({ date: 1, createdAt: -1 });
     res.json(bills);
   } catch (err) {
     console.error('Fetch bills error:', err.message);
@@ -79,26 +83,37 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// --- 2. POST: Create a bill linked to the user ---
+// --- 2. POST: Create a bill or expense linked to the user ---
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, amount, date, category, notes } = req.body || {};
+    const {
+      name,
+      amount,
+      date,
+      category,
+      notes,
+      type,
+      paymentMethod,
+      sourceApp,
+      transactionFingerprint,
+      transactionDate,
+    } = req.body || {};
 
     const trimmedName = String(name || '').trim();
     if (!trimmedName) {
       return res.status(400).json({
         success: false,
-        error: 'Bill name is required.',
-        message: 'Bill name is required.',
-        msg: 'Bill name is required.'
+        error: 'Name is required.',
+        message: 'Name is required.',
+        msg: 'Name is required.'
       });
     }
     if (trimmedName.length > 100) {
       return res.status(400).json({
         success: false,
-        error: 'Bill name cannot exceed 100 characters.',
-        message: 'Bill name cannot exceed 100 characters.',
-        msg: 'Bill name cannot exceed 100 characters.'
+        error: 'Name cannot exceed 100 characters.',
+        message: 'Name cannot exceed 100 characters.',
+        msg: 'Name cannot exceed 100 characters.'
       });
     }
 
@@ -106,9 +121,9 @@ router.post('/', auth, async (req, res) => {
     if (isNaN(numAmount) || numAmount <= 0) {
       return res.status(400).json({
         success: false,
-        error: 'Bill amount must be greater than ₹0.',
-        message: 'Bill amount must be greater than ₹0.',
-        msg: 'Bill amount must be greater than ₹0.'
+        error: 'Amount must be greater than ₹0.',
+        message: 'Amount must be greater than ₹0.',
+        msg: 'Amount must be greater than ₹0.'
       });
     }
 
@@ -116,14 +131,36 @@ router.post('/', auth, async (req, res) => {
     if (!trimmedDate || isNaN(new Date(trimmedDate).getTime())) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide a valid due date.',
-        message: 'Please provide a valid due date.',
-        msg: 'Please provide a valid due date.'
+        error: 'Please provide a valid date.',
+        message: 'Please provide a valid date.',
+        msg: 'Please provide a valid date.'
       });
     }
 
-    const validCategories = ['Rent', 'Food', 'Bills', 'Utilities', 'Subscription', 'Insurance', 'Other'];
+    const validCategories = [
+      'Rent', 'Food', 'Bills', 'Utilities', 'Subscription', 'Insurance',
+      'Shopping', 'Travel', 'Entertainment', 'Health', 'Other'
+    ];
     const assignedCategory = validCategories.includes(category) ? category : 'Bills';
+
+    const isExpense = type === 'expense';
+
+    // Duplicate detection for transactions with a fingerprint
+    if (transactionFingerprint && typeof transactionFingerprint === 'string' && transactionFingerprint.trim()) {
+      const existing = await Bill.findOne({
+        user: req.user.id,
+        transactionFingerprint: transactionFingerprint.trim()
+      });
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: 'This transaction has already been recorded as an expense.',
+          message: 'This transaction has already been recorded as an expense.',
+          duplicate: true,
+          expense: existing
+        });
+      }
+    }
 
     const newBill = new Bill({
       user: req.user.id,
@@ -132,22 +169,39 @@ router.post('/', auth, async (req, res) => {
       date: trimmedDate.split('T')[0],
       category: assignedCategory,
       notes: String(notes || '').trim().slice(0, 500),
-      status: 'Unpaid'
+      type: isExpense ? 'expense' : 'bill',
+      status: isExpense ? 'Paid' : (req.body.status || 'Unpaid'),
+      paidDate: isExpense ? (trimmedDate ? new Date(trimmedDate) : new Date()) : (req.body.status === 'Paid' ? new Date() : null),
+      paymentMethod: String(paymentMethod || (isExpense ? 'Other' : 'Other')).trim(),
+      sourceApp: sourceApp ? String(sourceApp).trim() : (isExpense ? 'Manual' : null),
+      transactionFingerprint: transactionFingerprint ? String(transactionFingerprint).trim() : null,
+      transactionDate: transactionDate ? new Date(transactionDate) : (isExpense ? new Date(trimmedDate) : null)
     });
 
     await newBill.save();
 
     try {
-      await createNotification({
-        userId: req.user.id,
-        title: 'New Bill Added',
-        message: `New bill added: ${newBill.name} — ₹${Number(newBill.amount).toLocaleString('en-IN')}.`,
-        type: 'BILL_CREATED',
-        billId: newBill._id,
-        billName: newBill.name
-      });
+      if (isExpense) {
+        await createNotification({
+          userId: req.user.id,
+          title: 'Expense Recorded',
+          message: `Expense recorded: ${newBill.name} — ₹${Number(newBill.amount).toLocaleString('en-IN')}${newBill.paymentMethod ? ' via ' + newBill.paymentMethod : ''}.`,
+          type: 'BILL_PAID',
+          billId: newBill._id,
+          billName: newBill.name
+        });
+      } else {
+        await createNotification({
+          userId: req.user.id,
+          title: 'New Bill Added',
+          message: `New bill added: ${newBill.name} — ₹${Number(newBill.amount).toLocaleString('en-IN')}.`,
+          type: 'BILL_CREATED',
+          billId: newBill._id,
+          billName: newBill.name
+        });
+      }
     } catch (notifErr) {
-      console.warn('Failed to record bill-created notification:', notifErr.message);
+      console.warn('Failed to record notification:', notifErr.message);
     }
 
     res.status(201).json(newBill);
@@ -188,24 +242,24 @@ router.put('/:id', auth, async (req, res) => {
       });
     }
 
-    const { name, amount, date, category, status, notes } = req.body || {};
+    const { name, amount, date, category, status, notes, paymentMethod, sourceApp, type } = req.body || {};
 
     if (name !== undefined) {
       const trimmedName = String(name).trim();
       if (!trimmedName) {
         return res.status(400).json({
           success: false,
-          error: 'Bill name cannot be empty.',
-          message: 'Bill name cannot be empty.',
-          msg: 'Bill name cannot be empty.'
+          error: 'Name cannot be empty.',
+          message: 'Name cannot be empty.',
+          msg: 'Name cannot be empty.'
         });
       }
       if (trimmedName.length > 100) {
         return res.status(400).json({
           success: false,
-          error: 'Bill name cannot exceed 100 characters.',
-          message: 'Bill name cannot exceed 100 characters.',
-          msg: 'Bill name cannot exceed 100 characters.'
+          error: 'Name cannot exceed 100 characters.',
+          message: 'Name cannot exceed 100 characters.',
+          msg: 'Name cannot exceed 100 characters.'
         });
       }
       bill.name = trimmedName;
@@ -216,9 +270,9 @@ router.put('/:id', auth, async (req, res) => {
       if (isNaN(numAmount) || numAmount <= 0) {
         return res.status(400).json({
           success: false,
-          error: 'Bill amount must be greater than ₹0.',
-          message: 'Bill amount must be greater than ₹0.',
-          msg: 'Bill amount must be greater than ₹0.'
+          error: 'Amount must be greater than ₹0.',
+          message: 'Amount must be greater than ₹0.',
+          msg: 'Amount must be greater than ₹0.'
         });
       }
       bill.amount = numAmount;
@@ -229,21 +283,36 @@ router.put('/:id', auth, async (req, res) => {
       if (!trimmedDate || isNaN(new Date(trimmedDate).getTime())) {
         return res.status(400).json({
           success: false,
-          error: 'Please provide a valid due date.',
-          message: 'Please provide a valid due date.',
-          msg: 'Please provide a valid due date.'
+          error: 'Please provide a valid date.',
+          message: 'Please provide a valid date.',
+          msg: 'Please provide a valid date.'
         });
       }
       bill.date = trimmedDate.split('T')[0];
     }
 
     if (category !== undefined) {
-      const validCategories = ['Rent', 'Food', 'Bills', 'Utilities', 'Subscription', 'Insurance', 'Other'];
+      const validCategories = [
+        'Rent', 'Food', 'Bills', 'Utilities', 'Subscription', 'Insurance',
+        'Shopping', 'Travel', 'Entertainment', 'Health', 'Other'
+      ];
       bill.category = validCategories.includes(category) ? category : bill.category;
     }
 
     if (notes !== undefined) {
       bill.notes = String(notes).trim().slice(0, 500);
+    }
+
+    if (paymentMethod !== undefined) {
+      bill.paymentMethod = String(paymentMethod).trim();
+    }
+
+    if (sourceApp !== undefined) {
+      bill.sourceApp = String(sourceApp).trim();
+    }
+
+    if (type !== undefined && ['bill', 'expense'].includes(type)) {
+      bill.type = type;
     }
 
     const wasPaid = bill.status === 'Paid';

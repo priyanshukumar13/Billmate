@@ -1,0 +1,9 @@
+# BillMate Android APK Signing Configuration Template
+# To use: Copy this file to "signing.properties" (which is strictly ignored by .gitignore)
+# Or export these as secure environment variables before executing ./gradlew assembleRelease
+# NEVER commit signing.properties or keystore files to source control.
+
+BILLMATE_KEYSTORE_PATH=app/release-keystore.jks
+BILLMATE_KEYSTORE_PASSWORD=REPLACE_WITH_STRONG_KEYSTORE_PASSWORD
+BILLMATE_KEY_ALIAS=REPLACE_WITH_KEY_ALIAS
+BILLMATE_KEY_PASSWORD=REPLACE_WITH_STRONG_KEY_PASSWORD

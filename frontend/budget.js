@@ -47,11 +47,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         const now = new Date();
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-        // Calculate this month's spending strictly from bills in the current month
+        // Calculate this month's spending strictly from completed transactions (expenses and paid bills)
         let totalSpent = 0;
+        let pendingBills = 0;
         bills.forEach(b => {
             if (b.date && b.date.startsWith(currentMonthStr)) {
-                totalSpent += Number(b.amount || 0);
+                const amt = Number(b.amount || 0);
+                if (b.status === 'Paid' || b.type === 'expense') {
+                    totalSpent += amt;
+                } else {
+                    pendingBills += amt;
+                }
             }
         });
 

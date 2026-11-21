@@ -18,3 +18,9 @@ dist/
 # OS
 .DS_Store
 
+# Android & Keystores
+*.jks
+*.keystore
+signing.properties
+local.properties
+

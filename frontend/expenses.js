@@ -44,8 +44,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function getBillStatusInfo(bill) {
+        if (bill.type === 'expense') {
+            return { label: bill.paymentMethod ? `Expense (${bill.paymentMethod})` : 'Expense', badgeClass: 'badge paid' };
+        }
         if (bill.status === 'Paid') {
-            return { label: 'Paid', badgeClass: 'badge paid' };
+            return { label: 'Paid Bill', badgeClass: 'badge paid' };
         }
         if (!bill.date) {
             return { label: 'Unpaid', badgeClass: 'badge upcoming' };
@@ -86,7 +89,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         let highest = { amount: 0, name: 'None' };
         const categoryBreakdown = {};
 
-        allBills.forEach(b => {
+        // Strictly count actual completed spending (expenses and paid bills)
+        // Ordinary unpaid bills are pending liabilities and not counted as money spent
+        const paidItems = allBills.filter(b => b.status === 'Paid' || b.type === 'expense');
+
+        paidItems.forEach(b => {
             const amt = Number(b.amount || 0);
             totalSpending += amt;
 
@@ -98,14 +105,14 @@ document.addEventListener("DOMContentLoaded", async () => {
             categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + amt;
         });
 
-        const totalTransactions = allBills.length;
+        const totalTransactions = paidItems.length;
         const averageBill = totalTransactions > 0 ? Math.round(totalSpending / totalTransactions) : 0;
 
         // 1. Update 4 Top Stat Cards
-        if ($("stat-total-spending")) $("stat-total-spending").innerText = `₹${totalSpending.toLocaleString()}`;
-        if ($("stat-average-bill")) $("stat-average-bill").innerText = `₹${averageBill.toLocaleString()}`;
-        if ($("stat-highest-bill")) $("stat-highest-bill").innerText = `₹${highest.amount.toLocaleString()}`;
-        if ($("stat-highest-name")) $("stat-highest-name").innerText = highest.name || "No bills";
+        if ($("stat-total-spending")) $("stat-total-spending").innerText = `₹${totalSpending.toLocaleString('en-IN')}`;
+        if ($("stat-average-bill")) $("stat-average-bill").innerText = `₹${averageBill.toLocaleString('en-IN')}`;
+        if ($("stat-highest-bill")) $("stat-highest-bill").innerText = `₹${highest.amount.toLocaleString('en-IN')}`;
+        if ($("stat-highest-name")) $("stat-highest-name").innerText = highest.name || "No expenses";
         if ($("stat-total-transactions")) $("stat-total-transactions").innerText = totalTransactions;
 
         // 2. Spending by Category Donut Chart
@@ -267,18 +274,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             } catch (e) {}
 
             const tr = document.createElement("tr");
+            const methodTag = bill.paymentMethod ? ` • ${bill.paymentMethod}` : '';
             tr.innerHTML = `
                 <td>
                     <div class="bill-name-cell">
                         <div class="bill-icon"><i data-lucide="${icon}"></i></div>
                         <div class="bill-name-text">
                             <strong>${bill.name}</strong>
-                            <small>${bill.category || 'Bills'}</small>
+                            <small>${bill.category || 'Bills'}${methodTag}</small>
                         </div>
                     </div>
                 </td>
                 <td class="bill-date-cell">${formattedDate}</td>
-                <td class="bill-amount-cell">₹${Number(bill.amount || 0).toLocaleString()}</td>
+                <td class="bill-amount-cell">₹${Number(bill.amount || 0).toLocaleString('en-IN')}</td>
                 <td><span class="${statusInfo.badgeClass}">${statusInfo.label}</span></td>
             `;
             tbody.appendChild(tr);
