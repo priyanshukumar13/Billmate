@@ -1,0 +1,34 @@
+# Dependency directories
+node_modules/
+
+# Environment and secrets (strictly exclude local .env)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git and IDE
+.git/
+.gitignore
+.vscode/
+
+# Test scripts and maintenance scripts
+tests/
+test_*.js
+*.test.js
+test-*.js
+resetPassword.js
+listUsers.js
+scripts/test_*.js
+
+# Local file uploads (keep directory structure, exclude files)
+receipts/*
+!receipts/.gitkeep
+reports/*
+!reports/.gitkeep

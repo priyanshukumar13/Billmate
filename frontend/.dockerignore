@@ -1,0 +1,27 @@
+# Dependency directories
+node_modules/
+
+# Local build output (let Docker multi-stage build create clean dist/)
+dist/
+
+# Android / Capacitor native assets and build files
+android/
+capacitor.config.json
+
+# Environment and local configurations
+.env
+.env.*
+local.properties
+signing.properties
+*.jks
+*.keystore
+
+# Git and IDE
+.git/
+.gitignore
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
