@@ -11,8 +11,9 @@ frontend/android/
 .git/
 .gitignore
 
-# Kubernetes folder itself (no need inside image)
-kubernetes/
+# Exclude Kubernetes files except the frontend build configuration
+kubernetes/*
+!kubernetes/nginx-k8s.conf
 
 # Docker files
 **/Dockerfile*

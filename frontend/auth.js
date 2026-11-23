@@ -25,10 +25,10 @@
       }
     }
 
-    if (typeof window.__VITE_API_BASE_URL__ === 'string' && window.__VITE_API_BASE_URL__.trim() !== '') {
+    if (typeof window.__VITE_API_BASE_URL__ === 'string') {
       return window.__VITE_API_BASE_URL__.trim().replace(/\/+$/, '');
     }
-    if (typeof window.BILLMATE_API_BASE_URL === 'string' && window.BILLMATE_API_BASE_URL.trim() !== '') {
+    if (typeof window.BILLMATE_API_BASE_URL === 'string') {
       return window.BILLMATE_API_BASE_URL.trim().replace(/\/+$/, '');
     }
 
