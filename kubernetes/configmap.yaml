@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: billmate-config
+  namespace: billmate
+  labels:
+    app: billmate
+data:
+  # Node.js server configuration
+  NODE_ENV: "production"
+  PORT: "5000"
+
+  # CORS: allow requests from the frontend.
+  # The Minikube NodePort URL is added by the deploy script using `minikube ip`.
+  # Both the standard http://localhost:NODEPORT and the Minikube IP are permitted.
+  # The deploy script patches this value at apply time; keep this as a safe fallback.
+  FRONTEND_URL: "http://localhost:30080,http://127.0.0.1:30080"
+
+  # Optional non-secret settings
+  MOCK_EMAIL: "false"
+  DIFY_BASE_URL: "https://api.dify.ai/v1"
+  CONTACT_TO: "support@billmate.app"

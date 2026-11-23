@@ -1,0 +1,44 @@
+# Root-level .dockerignore for Kubernetes frontend build context
+# (kubernetes/frontend-k8s.Dockerfile runs with project root as context)
+
+# Node dependencies
+**/node_modules/
+
+# Android Capacitor project (large - not needed for web build)
+frontend/android/
+
+# Git
+.git/
+.gitignore
+
+# Kubernetes folder itself (no need inside image)
+kubernetes/
+
+# Docker files
+**/Dockerfile*
+docker-compose.yml
+**/nginx.conf
+
+# Backend (not needed for frontend build)
+backend/
+
+# Build artifacts
+frontend/dist/
+
+# Secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/signing.properties
+**/*.jks
+**/*.keystore
+
+# OS artifacts
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# Docs
+DOCKER.md
+README*.md
+*.md
