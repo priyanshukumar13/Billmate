@@ -58,9 +58,11 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
         with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
+          context: .
+          file: ./kubernetes/frontend-k8s.Dockerfile
           push: true
+          build-args: |
+            VITE_API_BASE_URL=
           tags: |
             ghcr.io/priyanshukumar13/billmate-frontend:${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
             ghcr.io/priyanshukumar13/billmate-frontend:latest
