@@ -24,3 +24,7 @@ dist/
 signing.properties
 local.properties
 
+# Kubernetes Secrets (never commit generated secret manifests with real values)
+kubernetes/*-secret-generated.yaml
+kubernetes/billmate-secrets*.yaml
+

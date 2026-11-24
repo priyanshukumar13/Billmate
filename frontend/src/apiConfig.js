@@ -19,9 +19,11 @@ function resolveCanonicalBaseUrl() {
 
   // 1. Explicit Vite environment variable (canonical build-time config)
   if (typeof import.meta !== 'undefined' && import.meta.env) {
-    const envUrl = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim();
-    if (envUrl) {
-      return envUrl.replace(/\/+$/, '');
+    const envUrl = import.meta.env.VITE_API_BASE_URL !== undefined
+      ? import.meta.env.VITE_API_BASE_URL
+      : import.meta.env.VITE_API_URL;
+    if (typeof envUrl === 'string') {
+      return envUrl.trim().replace(/\/+$/, '');
     }
   }
 
@@ -30,10 +32,10 @@ function resolveCanonicalBaseUrl() {
     if (window.location && window.location.protocol === 'capacitor:') {
       return CANONICAL_PROD_URL;
     }
-    if (typeof window.__VITE_API_BASE_URL__ === 'string' && window.__VITE_API_BASE_URL__.trim() !== '') {
+    if (typeof window.__VITE_API_BASE_URL__ === 'string') {
       return window.__VITE_API_BASE_URL__.trim().replace(/\/+$/, '');
     }
-    if (typeof window.BILLMATE_API_BASE_URL === 'string' && window.BILLMATE_API_BASE_URL.trim() !== '') {
+    if (typeof window.BILLMATE_API_BASE_URL === 'string') {
       return window.BILLMATE_API_BASE_URL.trim().replace(/\/+$/, '');
     }
 

@@ -61,10 +61,21 @@ const injectApiConfigPlugin = (resolvedApiUrl) => ({
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const configuredUrl = (env.VITE_API_BASE_URL || env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+  const hasProcessApiBaseUrl = Object.prototype.hasOwnProperty.call(process.env, 'VITE_API_BASE_URL');
+  const hasProcessApiUrl = Object.prototype.hasOwnProperty.call(process.env, 'VITE_API_URL');
+  const hasViteApiBaseUrl = hasProcessApiBaseUrl || Object.prototype.hasOwnProperty.call(env, 'VITE_API_BASE_URL');
+  const hasViteApiUrl = hasProcessApiUrl || Object.prototype.hasOwnProperty.call(env, 'VITE_API_URL');
+  const explicitlyConfiguredUrl = hasViteApiBaseUrl
+    ? (hasProcessApiBaseUrl ? process.env.VITE_API_BASE_URL : env.VITE_API_BASE_URL)
+    : (hasViteApiUrl
+        ? (hasProcessApiUrl ? process.env.VITE_API_URL : env.VITE_API_URL)
+        : undefined);
 
-  // Canonical base URL: explicit VITE_API_BASE_URL if set, else environment-appropriate default
-  const apiUrl = configuredUrl || (mode === 'development' ? CANONICAL_LOCAL_URL : CANONICAL_PROD_URL);
+  // An explicitly empty VITE_API_BASE_URL means same-origin relative API paths.
+  // Only fall back when the build has no API URL variable configured.
+  const apiUrl = explicitlyConfiguredUrl !== undefined
+    ? String(explicitlyConfiguredUrl).trim().replace(/\/+$/, '')
+    : (mode === 'development' ? CANONICAL_LOCAL_URL : CANONICAL_PROD_URL);
 
   return {
     plugins: [react(), injectApiConfigPlugin(apiUrl), copyStaticPlugin(apiUrl)],

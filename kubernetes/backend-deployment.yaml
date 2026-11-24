@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billmate-backend
+  namespace: billmate
+  labels:
+    app: billmate
+    component: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: billmate
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: billmate
+        component: backend
+    spec:
+      # Run as the non-root user configured in the backend Dockerfile (node uid 1000)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: backend
+          image: billremainder-backend:latest
+          # Use locally loaded Minikube image; never pull from registry
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          # Load non-sensitive config from ConfigMap
+          envFrom:
+            - configMapRef:
+                name: billmate-config
+          # Load secrets (MONGO_URI, JWT_SECRET, API keys) from Secret
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: billmate-secrets
+                  key: MONGO_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: billmate-secrets
+                  key: JWT_SECRET
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: billmate-secrets
+                  key: RESEND_API_KEY
+                  optional: true
+            - name: RESEND_FROM_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: billmate-secrets
+                  key: RESEND_FROM_EMAIL
+                  optional: true
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: billmate-secrets
+                  key: GEMINI_API_KEY
+                  optional: true
+            - name: DIFY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: billmate-secrets
+                  key: DIFY_API_KEY
+                  optional: true
+          # Readiness: only send traffic once /health reports ok
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          # Liveness: restart pod if it becomes unresponsive
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # Resources tuned for a laptop with ~7.6 GB Docker memory
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
