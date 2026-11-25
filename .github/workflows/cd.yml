@@ -1,0 +1,289 @@
+name: BillMate Kubernetes CD
+
+on:
+  workflow_run:
+    workflows:
+      - "Docker publish"
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: billmate-kubernetes-cd-main
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Minikube
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+    timeout-minutes: 20
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+
+    steps:
+      - name: Check out publishing commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Verify Windows runner prerequisites
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          foreach ($commandName in @("docker", "minikube", "kubectl")) {
+            if (-not (Get-Command $commandName -ErrorAction SilentlyContinue)) {
+              throw "Required command is unavailable on PATH: $commandName"
+            }
+          }
+
+          docker info --format "{{.ServerVersion}}" | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Docker Desktop is not running or the Docker engine is unavailable."
+          }
+
+          $minikubeStatusOutput = & minikube status --profile minikube --format "{{.Host}}"
+          $minikubeStatusExitCode = $LASTEXITCODE
+          $minikubeHostStatus = ($minikubeStatusOutput -join "").Trim()
+          if ($minikubeStatusExitCode -ne 0 -or $minikubeHostStatus -ne "Running") {
+            throw "Minikube is not running. Do not recreate or delete the existing cluster."
+          }
+
+          $context = (& kubectl config current-context).Trim()
+          if ($LASTEXITCODE -ne 0 -or $context -ne "minikube") {
+            throw "kubectl context must be 'minikube'; found '$context'."
+          }
+
+          kubectl cluster-info | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "The Kubernetes API is not accessible."
+          }
+
+          $versionJson = & kubectl version -o json
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not read kubectl client and Kubernetes server versions."
+          }
+
+          $versionInfo = ($versionJson -join "`n") | ConvertFrom-Json
+          $clientVersion = [regex]::Match(
+            [string]$versionInfo.clientVersion.gitVersion,
+            '^v?(?<major>\d+)\.(?<minor>\d+)\.\d+'
+          )
+          $serverVersion = [regex]::Match(
+            [string]$versionInfo.serverVersion.gitVersion,
+            '^v?(?<major>\d+)\.(?<minor>\d+)\.\d+'
+          )
+          if (-not $clientVersion.Success -or -not $serverVersion.Success) {
+            throw "Could not parse kubectl client and Kubernetes server versions."
+          }
+
+          $clientMajor = [int]$clientVersion.Groups["major"].Value
+          $serverMajor = [int]$serverVersion.Groups["major"].Value
+          $clientMinor = [int]$clientVersion.Groups["minor"].Value
+          $serverMinor = [int]$serverVersion.Groups["minor"].Value
+          if ($clientMajor -ne $serverMajor) {
+            throw "kubectl client major version $clientMajor is incompatible with Kubernetes server major version $serverMajor."
+          }
+
+          $minorSkew = [Math]::Abs($clientMinor - $serverMinor)
+          if ($minorSkew -gt 1) {
+            throw "kubectl client minor version $clientMinor differs from Kubernetes server minor version $serverMinor by more than one."
+          }
+
+          Write-Host "Docker, Minikube, kubectl, and Kubernetes API verified; client/server version skew is supported."
+
+      - name: Prevent stale deployment
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $headers = @{
+            Authorization = "Bearer $env:GITHUB_TOKEN"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+
+          $uri = "https://api.github.com/repos/priyanshukumar13/Billmate/actions/workflows/docker-publish.yml/runs?branch=main&status=success&per_page=1"
+          $latestRun = Invoke-RestMethod -Headers $headers -Uri $uri -Method Get
+          $latestSha = $latestRun.workflow_runs | Select-Object -First 1 -ExpandProperty head_sha
+
+          if (-not $latestSha) {
+            throw "No successful Docker publishing run was found for main."
+          }
+
+          if ($latestSha -ne $env:DEPLOY_SHA) {
+            throw "Deployment skipped: a newer Docker publishing run exists for $latestSha."
+          }
+
+          Write-Host "Confirmed this is the latest successful main Docker publish."
+
+      - name: Authenticate and load immutable images
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $backendImage = "ghcr.io/priyanshukumar13/billmate-backend:$env:DEPLOY_SHA"
+          $frontendImage = "ghcr.io/priyanshukumar13/billmate-frontend:$env:DEPLOY_SHA"
+
+          $env:GITHUB_TOKEN | docker login ghcr.io `
+            --username "${{ github.actor }}" `
+            --password-stdin
+          if ($LASTEXITCODE -ne 0) {
+            throw "GHCR authentication failed."
+          }
+
+          docker pull $backendImage
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to pull the backend image for the publishing SHA."
+          }
+
+          docker pull $frontendImage
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to pull the frontend image for the publishing SHA."
+          }
+
+          minikube image load $backendImage --profile minikube
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to load the exact backend SHA image into Minikube."
+          }
+
+          minikube image load $frontendImage --profile minikube
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to load the exact frontend SHA image into Minikube."
+          }
+
+          "DEPLOY_BACKEND_IMAGE=$backendImage" >> $env:GITHUB_ENV
+          "DEPLOY_FRONTEND_IMAGE=$frontendImage" >> $env:GITHUB_ENV
+
+      - name: Verify deployment prerequisites
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          kubectl get namespace billmate | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "The billmate namespace is missing."
+          }
+
+          foreach ($deploymentName in @("billmate-backend", "billmate-frontend")) {
+            kubectl get deployment $deploymentName --namespace billmate | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              throw "Required deployment is missing: $deploymentName"
+            }
+          }
+
+          $backend = kubectl get deployment billmate-backend --namespace billmate -o json | ConvertFrom-Json
+          $frontend = kubectl get deployment billmate-frontend --namespace billmate -o json | ConvertFrom-Json
+
+          if ($backend.spec.replicas -ne 3) {
+            throw "Backend replica count is $($backend.spec.replicas); expected 3."
+          }
+          if ($frontend.spec.replicas -ne 2) {
+            throw "Frontend replica count is $($frontend.spec.replicas); expected 2."
+          }
+
+          Write-Host "BillMate namespace, deployments, and replica counts verified."
+
+      - name: Update immutable deployment images
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          kubectl set image deployment/billmate-backend `
+            backend=$env:DEPLOY_BACKEND_IMAGE `
+            --namespace billmate
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to update the backend deployment image."
+          }
+
+          kubectl set image deployment/billmate-frontend `
+            frontend=$env:DEPLOY_FRONTEND_IMAGE `
+            --namespace billmate
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to update the frontend deployment image."
+          }
+
+      - name: Wait for rollouts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          kubectl rollout status deployment/billmate-backend `
+            --namespace billmate --timeout=180s
+          if ($LASTEXITCODE -ne 0) {
+            throw "Backend rollout failed or timed out."
+          }
+
+          kubectl rollout status deployment/billmate-frontend `
+            --namespace billmate --timeout=180s
+          if ($LASTEXITCODE -ne 0) {
+            throw "Frontend rollout failed or timed out."
+          }
+
+      - name: Verify pods and services
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          kubectl wait --for=condition=Ready pod `
+            --selector=component=backend `
+            --namespace billmate --timeout=180s
+          if ($LASTEXITCODE -ne 0) {
+            throw "Backend pods did not become Ready."
+          }
+
+          kubectl wait --for=condition=Ready pod `
+            --selector=component=frontend `
+            --namespace billmate --timeout=180s
+          if ($LASTEXITCODE -ne 0) {
+            throw "Frontend pods did not become Ready."
+          }
+
+          foreach ($deploymentName in @("billmate-backend", "billmate-frontend")) {
+            $deployment = kubectl get deployment $deploymentName `
+              --namespace billmate -o json | ConvertFrom-Json
+            if ($deployment.status.readyReplicas -ne $deployment.spec.replicas) {
+              throw "$deploymentName does not have all replicas Ready."
+            }
+          }
+
+          foreach ($serviceName in @("billmate-backend", "billmate-frontend")) {
+            kubectl get service $serviceName --namespace billmate | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+              throw "Required service is missing: $serviceName"
+            }
+
+            $addresses = kubectl get endpoints $serviceName `
+              --namespace billmate -o jsonpath="{.subsets[*].addresses[*].ip}"
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($addresses)) {
+              throw "Service has no Ready endpoints: $serviceName"
+            }
+          }
+
+          Write-Host "All deployments, pods, and services verified."
+
+      - name: Show deployment status
+        if: always()
+        shell: pwsh
+        run: |
+          kubectl get deployments,pods,services,endpoints `
+            --namespace billmate -o wide
+
+      - name: Logout from GHCR
+        if: always()
+        shell: pwsh
+        run: docker logout ghcr.io

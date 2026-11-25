@@ -244,3 +244,173 @@ minikube delete
 - **Render production backend**: `https://billmate-backend.onrender.com` unaffected.
 - **Android APK**: Capacitor configuration and signing keys untouched.
 - **MongoDB Atlas**: No schema changes, no data migration.
+
+---
+
+## Phase 3 — Automated Kubernetes Continuous Deployment
+
+The CD workflow is [`.github/workflows/cd.yml`](../.github/workflows/cd.yml). It runs
+only after the separate **Docker publish** workflow completes successfully for
+`main`. It does not build or publish images itself.
+
+### Windows self-hosted runner setup
+
+1. Install Docker Desktop and enable the Docker Engine.
+2. Install and start Minikube with the Docker driver:
+
+   ```powershell
+   minikube start --driver=docker --profile=minikube
+   ```
+
+3. Install `kubectl` and Minikube, then add both executables to `PATH`.
+4. Confirm the runner can execute Docker Desktop commands in an interactive
+   session used by GitHub Actions:
+
+   ```powershell
+   docker info
+   minikube status --profile=minikube
+   kubectl config current-context
+   kubectl cluster-info
+   ```
+
+5. Keep `kubectl`'s active context set to `minikube`.
+6. Configure a GitHub Actions runner with these labels:
+
+   - `self-hosted`
+   - `Windows`
+   - `X64`
+
+7. Start the runner as a service or interactive user that can access Docker
+   Desktop and execute `docker`, `minikube`, and `kubectl`.
+
+The CD workflow fails if Docker, Minikube, kubectl, or the Kubernetes API is
+unavailable. It never calls `minikube delete`, `minikube start`, or any cluster
+destructive command. It also checks the kubectl client against the Kubernetes
+API server version and stops if their major versions differ or their minor
+versions differ by more than one. The existing Minikube cluster is expected to
+run Kubernetes v1.37.0.
+
+### Required GitHub permissions
+
+- Repository Actions must allow workflows to run.
+- The workflow uses the built-in `GITHUB_TOKEN`.
+- Repository Actions permissions need:
+  - `contents: read`
+  - `actions: read`
+  - `packages: read`
+- The package workflow needs `packages: write`.
+- GHCR package access must allow the repository to read and publish the two
+  `billmate-*` packages.
+- No personal access token is required.
+
+### Trigger and deployment sequence
+
+The workflow triggers after the **Docker publish** workflow completes. It is
+guarded by both a successful conclusion and `head_branch == main`.
+
+It then:
+
+1. Checks out the exact commit SHA from the successful publishing run.
+2. Rechecks the latest successful publishing SHA for `main`.
+3. Authenticates to GHCR with `GITHUB_TOKEN`.
+4. Pulls SHA-tagged backend and frontend images.
+5. Loads those exact images into the Minikube profile.
+6. Updates the existing `billmate-backend` and `billmate-frontend` deployments.
+7. Waits for rollouts and verifies Ready pods and service endpoints.
+
+The frontend update always uses the Kubernetes-specific image built with
+`kubernetes/frontend-k8s.Dockerfile`. Its Nginx configuration continues to
+proxy `/api/` to `billmate-backend:5000`.
+
+### Monitoring deployment status
+
+In GitHub Actions:
+
+1. Open **Actions**.
+2. Select **BillMate Kubernetes CD**.
+3. Open the successful or failed workflow run.
+4. Review rollout, pod, and service status in the final step and failure step logs.
+
+On Windows:
+
+```powershell
+kubectl get deployments,pods,services,endpoints -n billmate -o wide
+kubectl rollout status deployment/billmate-backend -n billmate --timeout=180s
+kubectl rollout status deployment/billmate-frontend -n billmate --timeout=180s
+kubectl get pods -n billmate
+```
+
+### Rollback
+
+Rollback is performed manually and only changes the existing deployment:
+
+```powershell
+kubectl rollout undo deployment/billmate-backend -n billmate
+kubectl rollout undo deployment/billmate-frontend -n billmate
+
+kubectl rollout status deployment/billmate-backend -n billmate --timeout=180s
+kubectl rollout status deployment/billmate-frontend -n billmate --timeout=180s
+```
+
+View deployment history without changing it:
+
+```powershell
+kubectl rollout history deployment/billmate-backend -n billmate
+kubectl rollout history deployment/billmate-frontend -n billmate
+```
+
+### Troubleshooting
+
+**Workflow skipped**
+- Confirm the Docker publish workflow name is exactly `Docker publish`.
+- Confirm publishing completed successfully on `main`.
+- Confirm no newer successful publish exists for the same branch.
+
+**No runner available**
+- Register a runner with `self-hosted`, `Windows`, and `X64` labels.
+- Confirm the runner is online and its service/user can access Docker Desktop.
+
+**Docker Desktop unavailable**
+
+```powershell
+docker info
+```
+
+Start Docker Desktop, then restart the self-hosted runner if it was already
+running before Docker became available.
+
+**Minikube unavailable**
+
+```powershell
+minikube status --profile=minikube
+kubectl config current-context
+```
+
+Do not recreate Minikube to repair ordinary CD failures.
+
+**Wrong Kubernetes context**
+
+```powershell
+kubectl config use-context minikube
+kubectl cluster-info
+```
+
+**Missing namespace or deployments**
+
+```powershell
+kubectl get namespace billmate
+kubectl get deployments -n billmate
+```
+
+Apply the existing namespace/manifests only if the cluster is missing its
+base BillMate resources. Never use destructive namespace deletion as a repair step.
+
+**Pod or rollout failure**
+
+```powershell
+kubectl describe deployment billmate-backend -n billmate
+kubectl describe deployment billmate-frontend -n billmate
+kubectl get pods -n billmate
+kubectl logs -l component=backend -n billmate --tail=100
+kubectl logs -l component=frontend -n billmate --tail=100
+```
