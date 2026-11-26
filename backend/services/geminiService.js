@@ -56,6 +56,50 @@ function createDifyError(message) {
   return error;
 }
 
+function sanitizeDifyDiagnostic(value, contextToken) {
+  let text = String(value || '');
+  const secrets = [DIFY_API_KEY, process.env.DIFY_BACKEND_TOOL_SECRET, contextToken]
+    .filter((secret) => typeof secret === 'string' && secret.length > 0);
+  for (const secret of secrets) {
+    text = text.replaceAll(secret, '[REDACTED]');
+  }
+
+  return text
+    .replace(/Authorization\s*:\s*Bearer\s+[^\s,;"']+/gi, '[REDACTED_AUTHORIZATION]')
+    .replace(/Bearer\s+[^\s,;"']+/gi, 'Bearer [REDACTED]')
+    .replace(/\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_JWT]')
+    .replace(/\b(?:app-|sk-|re_)[A-Za-z0-9_-]{8,}\b/gi, '[REDACTED_KEY]')
+    .replace(/\b(api[_ -]?key|secret|context[_ -]?token|access[_ -]?token|jwt)\s*[:=]\s*["']?[^,\s;"']+/gi, '$1=[REDACTED]')
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[REDACTED_EMAIL]')
+    .replace(/\+?\d[\d\s().-]{5,}\d/g, '[REDACTED_NUMBER]')
+    .replace(/<(?:.|\n)*?>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
+}
+
+function getDifyErrorDetails(status, responseBody, contextToken) {
+  let errorCode = `HTTP_${status}`;
+  let errorMessage = responseBody;
+
+  try {
+    const data = JSON.parse(responseBody);
+    if (data && typeof data === 'object') {
+      errorCode = data.code || data.error?.code || errorCode;
+      errorMessage = data.message
+        || data.error?.message
+        || (typeof data.error === 'string' ? data.error : errorMessage);
+    }
+  } catch (_error) {
+    // Dify proxies may return plain text instead of a JSON error object.
+  }
+
+  return {
+    errorCode: sanitizeDifyDiagnostic(errorCode, contextToken) || `HTTP_${status}`,
+    errorMessage: sanitizeDifyDiagnostic(errorMessage, contextToken) || 'No error message provided.'
+  };
+}
+
 function stableDifyUserId(userId) {
   if (typeof userId !== 'string' || !userId.trim() || !DIFY_API_KEY) {
     const error = new Error('A Dify API key and authenticated BillMate user are required.');
@@ -214,7 +258,17 @@ async function generateChatResponse(query, bills, contextToken, userId, conversa
   }
 
   if (!response.ok) {
-    console.error('Dify request failed with status:', response.status);
+    let responseBody = '';
+    try {
+      responseBody = await response.text();
+    } catch (_error) {
+      responseBody = 'Unable to read Dify error response body.';
+    }
+    const details = getDifyErrorDetails(response.status, responseBody, contextToken);
+    console.error('Dify request failed:', {
+      httpStatus: response.status,
+      ...details
+    });
     throw createDifyError('Dify returned an unsuccessful response.');
   }
 

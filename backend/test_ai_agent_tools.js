@@ -316,6 +316,51 @@ test('Agent API fails closed when signed user context is missing or the SSE stre
   }
 });
 
+test('Dify non-2xx diagnostics include safe JSON and plain-text errors', async () => {
+  const originalFetch = global.fetch;
+  const originalConsoleError = console.error;
+  const contextToken = createDifyUserContext(USER_A);
+  const toolSecret = process.env.DIFY_BACKEND_TOOL_SECRET;
+  const loggedDiagnostics = [];
+  console.error = (...args) => loggedDiagnostics.push(args);
+
+  try {
+    global.fetch = async () => new Response(JSON.stringify({
+      code: 'forbidden',
+      message: `Dify denied token ${contextToken}; email user@example.com; API key app-test-agent-key`
+    }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    await assert.rejects(
+      geminiService.generateChatResponse('Hello', [], contextToken, USER_A),
+      { code: 'DIFY_UNAVAILABLE' }
+    );
+
+    global.fetch = async () => new Response(
+      `Forbidden: bearer ${contextToken}; secret ${toolSecret}; Authorization: Bearer app-test-agent-key`,
+      { status: 403, headers: { 'Content-Type': 'text/plain' } }
+    );
+    await assert.rejects(
+      geminiService.generateChatResponse('Hello', [], contextToken, USER_A),
+      { code: 'DIFY_UNAVAILABLE' }
+    );
+  } finally {
+    global.fetch = originalFetch;
+    console.error = originalConsoleError;
+  }
+
+  assert.equal(loggedDiagnostics.length, 2);
+  assert.deepEqual(loggedDiagnostics.map((entry) => entry[1].httpStatus), [403, 403]);
+  assert.equal(loggedDiagnostics[0][1].errorCode, 'forbidden');
+  assert.match(loggedDiagnostics[0][1].errorMessage, /Dify denied token \[REDACTED\]/);
+  assert.match(loggedDiagnostics[0][1].errorMessage, /\[REDACTED_EMAIL\]/);
+  assert.equal(loggedDiagnostics[1][1].errorCode, 'HTTP_403');
+  assert.match(loggedDiagnostics[1][1].errorMessage, /Forbidden/);
+  const serializedLogs = JSON.stringify(loggedDiagnostics);
+  assert.equal(serializedLogs.includes(contextToken), false);
+  assert.equal(serializedLogs.includes(toolSecret), false);
+  assert.doesNotMatch(serializedLogs, /app-test-agent-key|Authorization: Bearer/);
+  assert.doesNotMatch(serializedLogs, /user@example\.com/);
+});
+
 test('Gemini receipt parsing and report insight fallback remain available', async () => {
   const receipt = await geminiService.parseReceiptText('Merchant: Cafe\nTotal: Rs. 12.50');
   const insights = await geminiService.generateReportInsights({});
