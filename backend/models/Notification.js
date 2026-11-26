@@ -31,6 +31,10 @@ const NotificationSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  deduplicationKey: {
+    type: String,
+    default: null
+  },
   isRead: {
     type: Boolean,
     default: false,
@@ -39,5 +43,10 @@ const NotificationSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+NotificationSchema.index(
+  { user: 1, deduplicationKey: 1 },
+  { unique: true, partialFilterExpression: { deduplicationKey: { $type: 'string' } } }
+);
 
 module.exports = mongoose.model('Notification', NotificationSchema);

@@ -27,6 +27,12 @@ const UserSchema = new mongoose.Schema({
   email_notifications: { type: Boolean, default: true },
   sms_notifications: { type: Boolean, default: false },
   reminder_days_before: { type: [Number], default: [1, 3] },
+  monthlyBudget: {
+    type: Number,
+    min: [0.01, 'Monthly budget must be greater than 0'],
+    max: [1000000000, 'Monthly budget is too large'],
+    default: null
+  },
   // Session state
   token_version: { type: Number, default: 0 },
 }, {

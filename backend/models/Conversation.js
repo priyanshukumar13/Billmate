@@ -13,6 +13,10 @@ const ConversationSchema = new mongoose.Schema({
       timestamp: { type: Date, default: Date.now }
     }
   ],
+  difyConversationId: {
+    type: String,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

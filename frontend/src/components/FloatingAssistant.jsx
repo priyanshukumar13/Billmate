@@ -49,9 +49,53 @@ export default function FloatingAssistant() {
         const data = await res.json();
         setMessages(data);
       }
+
+      const pendingResponse = await fetch(`${BASE_URL}/api/ai/actions/pending`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (pendingResponse.ok) {
+        const pendingActions = await pendingResponse.json();
+        if (Array.isArray(pendingActions) && pendingActions.length) {
+          setMessages((previous) => [
+            ...previous,
+            {
+              role: 'assistant',
+              content: 'These financial actions are waiting for your approval:',
+              pendingActions,
+              timestamp: new Date()
+            }
+          ]);
+        }
+      }
     } catch (err) {
       console.error('Error fetching chat history:', err);
     }
+  };
+
+  const submitAction = async (confirmationToken, operation) => {
+    const res = await fetch(
+      `${BASE_URL}/api/ai/actions/${encodeURIComponent(confirmationToken)}/${operation}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.msg || 'Unable to update this action.');
+
+    setMessages((previous) => previous.map((message) => ({
+      ...message,
+      pendingActions: message.pendingActions?.map((action) => (
+        action.confirmationToken === confirmationToken
+          ? { ...action, status: operation === 'confirm' ? 'completed' : 'cancelled' }
+          : action
+      ))
+    })));
+    return data;
   };
 
   const handleSend = async (textToSend) => {
@@ -86,7 +130,7 @@ export default function FloatingAssistant() {
       const data = await res.json();
       
       // Simulate streaming / typing effect for smooth UX
-      simulateStreamingResponse(data.reply);
+      simulateStreamingResponse(data.reply, data.pendingActions);
     } catch (err) {
       console.error('Chat error:', err);
       setMessages(prev => [...prev, { 
@@ -98,8 +142,13 @@ export default function FloatingAssistant() {
     }
   };
 
-  const simulateStreamingResponse = (fullText) => {
-    const botMsgPlaceholder = { role: 'assistant', content: '', timestamp: new Date() };
+  const simulateStreamingResponse = (fullText, pendingActions = []) => {
+    const botMsgPlaceholder = {
+      role: 'assistant',
+      content: '',
+      pendingActions: Array.isArray(pendingActions) ? pendingActions : [],
+      timestamp: new Date()
+    };
     setMessages(prev => [...prev, botMsgPlaceholder]);
     setIsLoading(false);
 
@@ -228,6 +277,75 @@ export default function FloatingAssistant() {
                         <div className={`text-[9px] mt-1 text-right ${msg.role === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
+                        {msg.pendingActions?.filter((action) => !action.status).map((action) => (
+                          <div key={action.confirmationToken} className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-slate-800">
+                            <p className="mb-2 font-medium">{action.preview || 'Confirm this financial action.'}</p>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  setMessages((previous) => previous.map((message) => ({
+                                    ...message,
+                                    pendingActions: message.pendingActions?.map((item) => (
+                                      item.confirmationToken === action.confirmationToken
+                                        ? { ...item, status: 'processing', error: '' }
+                                        : item
+                                    ))
+                                  })));
+                                  try {
+                                    await submitAction(action.confirmationToken, 'confirm');
+                                  } catch (error) {
+                                    setMessages((previous) => previous.map((message) => ({
+                                      ...message,
+                                      pendingActions: message.pendingActions?.map((item) => (
+                                        item.confirmationToken === action.confirmationToken
+                                          ? { ...item, status: '', error: error.message }
+                                          : item
+                                      ))
+                                    })));
+                                  }
+                                }}
+                                className="rounded-lg bg-blue-600 px-3 py-1.5 text-white"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  setMessages((previous) => previous.map((message) => ({
+                                    ...message,
+                                    pendingActions: message.pendingActions?.map((item) => (
+                                      item.confirmationToken === action.confirmationToken
+                                        ? { ...item, status: 'processing', error: '' }
+                                        : item
+                                    ))
+                                  })));
+                                  try {
+                                    await submitAction(action.confirmationToken, 'cancel');
+                                  } catch (error) {
+                                    setMessages((previous) => previous.map((message) => ({
+                                      ...message,
+                                      pendingActions: message.pendingActions?.map((item) => (
+                                        item.confirmationToken === action.confirmationToken
+                                          ? { ...item, status: '', error: error.message }
+                                          : item
+                                      ))
+                                    })));
+                                  }
+                                }}
+                                className="rounded-lg border border-slate-300 px-3 py-1.5"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                            {action.error && <p role="status" className="mt-2 text-red-600">{action.error}</p>}
+                          </div>
+                        ))}
+                        {msg.pendingActions?.filter((action) => action.status).map((action) => (
+                          <p key={action.confirmationToken} role="status" className="mt-2 text-[10px] text-slate-500">
+                            Action {action.status}.
+                          </p>
+                        ))}
                       </div>
                     </div>
                   </div>

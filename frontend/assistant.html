@@ -141,6 +141,19 @@
                 </button>
             </form>
         </div>
+
+        <section class="automation-management" aria-labelledby="automationHeading">
+            <div class="automation-section-heading">
+                <div>
+                    <h2 id="automationHeading">AI Automations</h2>
+                    <p>Review scheduled reminders, budget alerts, and weekly reports.</p>
+                </div>
+                <button type="button" class="suggestion-chip" id="refreshAutomations">Refresh</button>
+            </div>
+            <div id="automationList" class="automation-list" aria-live="polite">Loading automations...</div>
+            <h3>Recent runs</h3>
+            <div id="automationHistory" class="automation-history" aria-live="polite">Loading history...</div>
+        </section>
     </main>
 </div>
 

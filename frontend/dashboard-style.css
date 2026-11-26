@@ -1553,6 +1553,109 @@ label {
   padding: 10px 20px;
 }
 
+.chat-action-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.chat-action-preview {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.chat-action-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-action-controls button,
+.automation-item button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.chat-action-controls button:disabled,
+.automation-item button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.chat-action-confirm {
+  background: var(--primary-strong);
+  color: #fff;
+}
+
+.chat-action-cancel {
+  background: #fff;
+  color: var(--text);
+}
+
+.chat-action-status {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.automation-management {
+  margin-top: 1rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.automation-section-heading,
+.automation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.automation-section-heading h2,
+.automation-management h3 {
+  margin: 0 0 0.35rem;
+}
+
+.automation-section-heading p,
+.automation-item p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.automation-list,
+.automation-history {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.automation-item {
+  padding: 0.85rem;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+}
+
+.automation-item strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  text-transform: capitalize;
+}
+
+.automation-history-item {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 /* 12. RESPONSIVE BREAKPOINTS */
 @media (max-width: 1100px) {
   .stats-grid {

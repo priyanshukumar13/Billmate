@@ -1,0 +1,567 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "BillMate Financial Tools",
+    "version": "1.0.0",
+    "description": "Dify Agent API tools for reading the authenticated user's BillMate financial data and proposing user-confirmed financial actions."
+  },
+  "servers": [
+    {
+      "url": "https://billmate-backend.onrender.com/api/ai",
+      "description": "BillMate production API; replace with the deployment's HTTPS API base URL when self-hosted."
+    }
+  ],
+  "security": [
+    {
+      "DifyToolSecret": []
+    }
+  ],
+  "paths": {
+    "/tools/bills": {
+      "get": {
+        "operationId": "getBills",
+        "summary": "List the authenticated user's bills",
+        "description": "Reads bill records for the BillMate user identified by contextToken. Omitting status returns all bills.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ContextTokenQuery"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by calculated bill status.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["upcoming", "overdue", "paid", "unpaid"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bills for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "bills"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "bills": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/AiBill" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "post": {
+        "operationId": "proposeBill",
+        "summary": "Propose creating a bill",
+        "description": "Creates a pending action only. The BillMate user must confirm it using the authenticated app; this tool does not create the bill directly.",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateBillRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": { "$ref": "#/components/responses/ActionProposed" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/tools/expenses": {
+      "get": {
+        "operationId": "getExpenses",
+        "summary": "List the authenticated user's expenses",
+        "description": "Reads expense records for the BillMate user identified by contextToken. Date range endpoints are inclusive.",
+        "parameters": [
+          { "$ref": "#/components/parameters/ContextTokenQuery" },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["weekly", "monthly"]
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Inclusive start date in YYYY-MM-DD format; may be used with or without period.",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Inclusive end date in YYYY-MM-DD format; may be used with or without period.",
+            "required": false,
+            "schema": { "type": "string", "format": "date" }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": { "$ref": "#/components/schemas/Category" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expenses for the authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "expenses"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "expenses": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Expense" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      },
+      "post": {
+        "operationId": "proposeExpense",
+        "summary": "Propose recording an expense",
+        "description": "Creates a pending action only. The BillMate user must confirm it using the authenticated app; this tool does not record the expense directly.",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateExpenseRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": { "$ref": "#/components/responses/ActionProposed" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/tools/budget": {
+      "get": {
+        "operationId": "getBudget",
+        "summary": "Get the authenticated user's monthly budget",
+        "parameters": [
+          { "$ref": "#/components/parameters/ContextTokenQuery" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current month budget and spending totals.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BudgetResponse" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/tools/reminders": {
+      "post": {
+        "operationId": "proposeReminder",
+        "summary": "Propose creating a reminder",
+        "description": "Creates a pending action only. The BillMate user must confirm it using the authenticated app.",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateReminderRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": { "$ref": "#/components/responses/ActionProposed" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/tools/automations": {
+      "post": {
+        "operationId": "proposeAutomation",
+        "summary": "Propose creating a scheduled automation",
+        "description": "Creates a pending action only. The BillMate user must confirm it using the authenticated app.",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAutomationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": { "$ref": "#/components/responses/ActionProposed" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    },
+    "/tools/bills/mark-paid": {
+      "post": {
+        "operationId": "proposeMarkBillPaid",
+        "summary": "Propose marking a bill paid",
+        "description": "Creates a pending action only. The BillMate user must confirm it using the authenticated app; this tool never marks a bill paid directly.",
+        "parameters": [
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/MarkBillPaidRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": { "$ref": "#/components/responses/ActionProposed" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "DifyToolSecret": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Dify-Tool-Secret",
+        "description": "Static shared secret configured only in the backend environment and Dify API tool settings. Never expose it to frontend clients."
+      }
+    },
+    "parameters": {
+      "ContextTokenQuery": {
+        "name": "contextToken",
+        "in": "query",
+        "description": "Short-lived JWT issued for the currently authenticated BillMate user. Forward the billmate_context_token Agent input exactly.",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/ContextToken" }
+      },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "description": "Caller-generated key reused for retries of the same proposed financial action.",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128,
+          "$ref": "#/components/schemas/IdempotencyKeyValue"
+        }
+      }
+    },
+    "responses": {
+      "ActionProposed": {
+        "description": "A confirmation-required proposal was created or an idempotent proposal already exists.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ActionProposalResponse" }
+          }
+        }
+      },
+      "BadRequest": {
+        "description": "Invalid query, missing/invalid Idempotency-Key, or invalid financial fields.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ToolError" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing/invalid static tool secret or user-bound context JWT.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ToolError" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Referenced BillMate bill was not found for the authenticated user.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ToolError" }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "The user has no configured monthly budget, or the bill is already paid.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ToolError" }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "AI tool request rate limit exceeded.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ToolError" }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Database is not ready or user context verification is not configured.",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ToolError" }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Unexpected controller or Express error. The current backend does not guarantee a consistent JSON response body for unhandled errors."
+      }
+    },
+    "schemas": {
+      "ContextToken": {
+        "type": "string",
+        "minLength": 20,
+        "maxLength": 4096,
+        "description": "Short-lived, signed JWT bound to one BillMate user and audience dify-tools. The middleware also accepts this value as X-BillMate-Context; the Dify tool contract uses query/body placement."
+      },
+      "IdempotencyKeyValue": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+      },
+      "ToolError": {
+        "type": "object",
+        "required": ["success", "error"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [false] },
+          "error": { "type": "string" }
+        }
+      },
+      "Category": {
+        "type": "string",
+        "enum": ["Rent", "Food", "Bills", "Utilities", "Subscription", "Insurance", "Shopping", "Travel", "Entertainment", "Health", "Other"]
+      },
+      "AiBill": {
+        "type": "object",
+        "required": ["id", "name", "amount", "category", "dueDate", "status", "paymentStatus", "paidDate"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$" },
+          "name": { "type": "string" },
+          "amount": { "type": "number" },
+          "category": { "$ref": "#/components/schemas/Category" },
+          "dueDate": { "type": "string", "description": "Stored bill due date, normally YYYY-MM-DD." },
+          "status": { "type": "string", "enum": ["paid", "overdue", "upcoming", "unpaid"] },
+          "paymentStatus": { "type": "string", "enum": ["Unpaid", "Paid", "Upcoming", "Due Soon", "Overdue"] },
+          "paidDate": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Expense": {
+        "type": "object",
+        "required": ["id", "amount", "description", "category", "date"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$" },
+          "amount": { "type": "number" },
+          "description": { "type": "string" },
+          "category": { "$ref": "#/components/schemas/Category" },
+          "date": { "type": "string", "description": "Stored expense date, normally YYYY-MM-DD." }
+        }
+      },
+      "BudgetResponse": {
+        "type": "object",
+        "required": ["success", "month", "budget", "totalSpending", "remaining", "utilizationPercent", "thresholds", "period"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "month": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+          "budget": { "type": "number" },
+          "totalSpending": { "type": "number" },
+          "remaining": { "type": "number" },
+          "utilizationPercent": { "type": "number" },
+          "thresholds": {
+            "type": "object",
+            "required": ["warningPercent", "exceededPercent"],
+            "properties": {
+              "warningPercent": { "type": "integer", "enum": [80] },
+              "exceededPercent": { "type": "integer", "enum": [100] }
+            }
+          },
+          "period": {
+            "type": "object",
+            "required": ["start", "end"],
+            "properties": {
+              "start": { "type": "string", "format": "date-time" },
+              "end": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "ActionProposalResponse": {
+        "type": "object",
+        "required": ["success", "status", "preview", "expiresAt"],
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "status": {
+            "type": "string",
+            "enum": ["confirmation_required", "pending", "confirmed", "completed", "cancelled", "failed"]
+          },
+          "confirmationToken": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "Opaque token used by the authenticated BillMate app to confirm/cancel; never execute the action from Dify."
+          },
+          "preview": { "type": "string" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "duplicate": { "type": "boolean" }
+        }
+      },
+      "CreateExpenseRequest": {
+        "type": "object",
+        "required": ["contextToken", "description", "amount", "date"],
+        "properties": {
+          "contextToken": { "$ref": "#/components/schemas/ContextToken" },
+          "description": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "amount": { "type": "number", "minimum": 0.01, "maximum": 1000000000 },
+          "date": { "type": "string", "format": "date", "description": "YYYY-MM-DD." },
+          "category": { "$ref": "#/components/schemas/Category" },
+          "notes": { "type": "string", "maxLength": 500 },
+          "idempotencyKey": {
+            "$ref": "#/components/schemas/IdempotencyKeyValue",
+            "description": "Optional request-body fallback; Idempotency-Key header is preferred and takes precedence."
+          }
+        }
+      },
+      "CreateBillRequest": {
+        "type": "object",
+        "required": ["contextToken", "name", "amount", "date"],
+        "properties": {
+          "contextToken": { "$ref": "#/components/schemas/ContextToken" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "amount": { "type": "number", "minimum": 0.01, "maximum": 1000000000 },
+          "date": { "type": "string", "format": "date", "description": "YYYY-MM-DD." },
+          "category": { "$ref": "#/components/schemas/Category" },
+          "notes": { "type": "string", "maxLength": 500 },
+          "idempotencyKey": {
+            "$ref": "#/components/schemas/IdempotencyKeyValue",
+            "description": "Optional request-body fallback; Idempotency-Key header is preferred and takes precedence."
+          }
+        }
+      },
+      "CreateReminderRequest": {
+        "type": "object",
+        "required": ["contextToken", "title", "scheduledAt"],
+        "properties": {
+          "contextToken": { "$ref": "#/components/schemas/ContextToken" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "description": { "type": "string", "maxLength": 500 },
+          "scheduledAt": { "type": "string", "format": "date-time", "description": "Must be in the future." },
+          "timezone": { "type": "string", "maxLength": 64, "default": "Asia/Kolkata" },
+          "billId": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$", "nullable": true },
+          "idempotencyKey": {
+            "$ref": "#/components/schemas/IdempotencyKeyValue",
+            "description": "Optional request-body fallback; Idempotency-Key header is preferred and takes precedence."
+          }
+        }
+      },
+      "CreateAutomationRequest": {
+        "type": "object",
+        "required": ["contextToken", "name", "type", "nextRunAt"],
+        "properties": {
+          "contextToken": { "$ref": "#/components/schemas/ContextToken" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "description": { "type": "string", "maxLength": 500 },
+          "type": { "type": "string", "enum": ["budget_threshold", "recurring_reminder", "weekly_report"] },
+          "config": {
+            "type": "object",
+            "properties": {
+              "thresholdPercent": { "type": "number", "minimum": 1, "maximum": 100 },
+              "title": { "type": "string", "maxLength": 120 },
+              "billId": { "type": "string", "nullable": true }
+            }
+          },
+          "schedule": {
+            "type": "object",
+            "description": "Required for budget_threshold and recurring_reminder. weekly_report defaults to weekly when omitted.",
+            "properties": {
+              "frequency": { "type": "string", "enum": ["daily", "weekly", "monthly"] },
+              "intervalDays": { "type": "integer", "minimum": 1, "maximum": 365 },
+              "timezone": { "type": "string", "maxLength": 64, "default": "Asia/Kolkata" }
+            }
+          },
+          "nextRunAt": { "type": "string", "format": "date-time", "description": "Must be in the future." },
+          "idempotencyKey": {
+            "$ref": "#/components/schemas/IdempotencyKeyValue",
+            "description": "Optional request-body fallback; Idempotency-Key header is preferred and takes precedence."
+          }
+        }
+      },
+      "MarkBillPaidRequest": {
+        "type": "object",
+        "required": ["contextToken", "billId"],
+        "properties": {
+          "contextToken": { "$ref": "#/components/schemas/ContextToken" },
+          "billId": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$" },
+          "idempotencyKey": {
+            "$ref": "#/components/schemas/IdempotencyKeyValue",
+            "description": "Optional request-body fallback; Idempotency-Key header is preferred and takes precedence."
+          }
+        }
+      }
+    }
+  }
+}

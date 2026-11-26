@@ -1,4 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const crypto = require('crypto');
 
 // ==========================================
 // GEMINI CONFIGURATION
@@ -32,9 +33,10 @@ async function getGeminiModel() {
 // ==========================================
 
 const DIFY_API_URL =
-  process.env.DIFY_API_URL || 'https://api.dify.ai/v1';
+  (process.env.DIFY_API_URL || process.env.DIFY_BASE_URL || 'https://api.dify.ai/v1').replace(/\/+$/, '');
 
-const DIFY_API_KEY = process.env.DIFY_API_KEY;
+const DIFY_API_KEY = process.env.DIFY_APP_API_KEY || process.env.DIFY_API_KEY;
+const DIFY_TIMEOUT_MS = 60000;
 
 
 function withTimeout(promise, ms = 15000, errorMsg = 'Operation timed out') {
@@ -48,110 +50,175 @@ function withTimeout(promise, ms = 15000, errorMsg = 'Operation timed out') {
 // BILLMATE AI CHAT - DIFY
 // ==========================================
 
-async function generateChatResponse(query, bills) {
-  try {
-    // If Dify API key is missing, use fallback
-    if (!DIFY_API_KEY) {
-      console.warn(
-        '⚠️ DIFY_API_KEY is not set. Using fallback AI response.'
-      );
+function createDifyError(message) {
+  const error = new Error(message);
+  error.code = 'DIFY_UNAVAILABLE';
+  return error;
+}
 
-      return generateFallbackChatResponse(query, bills);
-    }
-
-    // Prepare actual MongoDB bill data
-    const billsSummary = bills.map((b) => ({
-      name: b.name,
-      amount: b.amount,
-      date: b.date,
-      category: b.category,
-      status: b.status || 'Unpaid'
-    }));
-
-    // We send both the user's question and their actual bill data
-    const fullMessage = `
-User question:
-${query}
-
-Here is the user's actual BillMate bill data:
-
-${JSON.stringify(billsSummary, null, 2)}
-
-Important:
-Answer the user's question using the bill data above when relevant.
-Do not invent bills, amounts, dates, or payment information.
-`;
-
-    // Call Dify Workflow API with 15s timeout
-    const fetchOptions = {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${DIFY_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        inputs: {
-          message: fullMessage
-        },
-        response_mode: 'blocking',
-        user: 'billmate-user'
-      })
-    };
-    if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
-      fetchOptions.signal = AbortSignal.timeout(15000);
-    }
-
-    const response = await fetch(
-      `${DIFY_API_URL}/workflows/run`,
-      fetchOptions
-    );
-
-    const data = await response.json();
-
-    // Handle Dify API errors
-    if (!response.ok) {
-      console.error(
-        'Dify API Error:',
-        data
-      );
-
-      return generateFallbackChatResponse(query, bills);
-    }
-
-    console.log(
-      'Dify Response:',
-      JSON.stringify(data, null, 2)
-    );
-
-    // Dify workflow response
-    const answer =
-      data?.data?.outputs?.text ||
-      data?.data?.outputs?.result ||
-      data?.data?.outputs?.answer ||
-      data?.data?.outputs?.reply;
-
-    // If workflow returned a valid answer
-    if (answer) {
-      return answer;
-    }
-
-    // Sometimes the workflow output key can be different
-    // This logs available outputs for debugging
-    console.warn(
-      '⚠️ No expected output found from Dify:',
-      data?.data?.outputs
-    );
-
-    return 'I received your request, but I could not generate a response. Please try again.';
-
-  } catch (error) {
-    console.error(
-      'Dify Chat Error:',
-      error
-    );
-
-    return generateFallbackChatResponse(query, bills);
+function stableDifyUserId(userId) {
+  if (typeof userId !== 'string' || !userId.trim() || !DIFY_API_KEY) {
+    const error = new Error('A Dify API key and authenticated BillMate user are required.');
+    error.code = 'DIFY_CONFIGURATION_ERROR';
+    throw error;
   }
+  return `bm_${crypto.createHmac('sha256', DIFY_API_KEY).update(String(userId)).digest('hex').slice(0, 32)}`;
+}
+
+function collectConfirmationTokens(value, tokens) {
+  if (typeof value === 'string') {
+    const pattern = /"(?:confirmationToken|confirmation_token)"\s*:\s*"([a-f0-9]{64})"/g;
+    let match;
+    while ((match = pattern.exec(value))) tokens.add(match[1]);
+    try {
+      collectConfirmationTokens(JSON.parse(value), tokens);
+    } catch (_error) {
+      // Tool observations may be plain text around a JSON response.
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectConfirmationTokens(item, tokens));
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+
+  Object.entries(value).forEach(([key, item]) => {
+    if (
+      (key === 'confirmationToken' || key === 'confirmation_token')
+      && typeof item === 'string'
+      && /^[a-f0-9]{64}$/.test(item)
+    ) {
+      tokens.add(item);
+    } else {
+      collectConfirmationTokens(item, tokens);
+    }
+  });
+}
+
+async function parseAgentStream(response) {
+  if (!response.body) throw createDifyError('Dify returned an empty Agent stream.');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let answer = '';
+  let streamedAnswer = '';
+  let conversationId = null;
+  let completed = false;
+  const confirmationTokens = new Set();
+
+  function processFrame(frame) {
+    const lines = frame.split(/\r?\n/);
+    const data = lines.filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n');
+    if (!data || data === '[DONE]') return;
+
+    let event;
+    try {
+      event = JSON.parse(data);
+    } catch (_error) {
+      throw createDifyError('Dify returned an invalid Agent stream event.');
+    }
+
+    event.event ||= lines.find((line) => line.startsWith('event:'))?.slice(6).trim();
+    if (typeof event.conversation_id === 'string' && event.conversation_id) {
+      conversationId = event.conversation_id;
+    }
+    if (event.event === 'error') {
+      throw createDifyError('Dify reported an Agent execution error.');
+    }
+    if (event.event === 'agent_thought') {
+      collectConfirmationTokens(event.observation, confirmationTokens);
+    } else if (event.event === 'agent_message' && typeof event.answer === 'string') {
+      streamedAnswer += event.answer;
+    } else if (event.event === 'message' && typeof event.answer === 'string') {
+      answer = event.answer;
+    } else if (event.event === 'message_replace' && typeof event.answer === 'string') {
+      answer = event.answer;
+    } else if (event.event === 'message_end') {
+      completed = true;
+    }
+  }
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      let separator;
+      while ((separator = /\r?\n\r?\n/.exec(buffer))) {
+        processFrame(buffer.slice(0, separator.index));
+        buffer = buffer.slice(separator.index + separator[0].length);
+      }
+      if (done) break;
+    }
+    if (buffer.trim()) processFrame(buffer);
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    if (error.code === 'DIFY_UNAVAILABLE') throw error;
+    throw createDifyError('Dify Agent stream could not be read.');
+  } finally {
+    reader.releaseLock();
+  }
+
+  const finalAnswer = answer || streamedAnswer;
+  if (!completed || !finalAnswer.trim() || !conversationId) {
+    throw createDifyError('Dify Agent stream ended before a complete response was received.');
+  }
+
+  return {
+    reply: finalAnswer,
+    conversationId,
+    pendingActions: [...confirmationTokens].slice(0, 5).map((confirmationToken) => ({ confirmationToken }))
+  };
+}
+
+async function generateChatResponse(query, bills, contextToken, userId, conversationId) {
+  if (!DIFY_API_KEY) {
+    console.warn('DIFY_APP_API_KEY is not set. Using the local assistant fallback.');
+    return { reply: generateFallbackChatResponse(query, bills), pendingActions: [] };
+  }
+  if (typeof contextToken !== 'string' || !contextToken) {
+    const error = new Error('A signed BillMate user context is required for Dify tools.');
+    error.code = 'DIFY_CONFIGURATION_ERROR';
+    throw error;
+  }
+  const difyUserId = stableDifyUserId(String(userId || ''));
+
+  const fetchOptions = {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${DIFY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      inputs: {
+        billmate_context_token: contextToken
+      },
+      query,
+      response_mode: 'streaming',
+      conversation_id: conversationId || '',
+      user: difyUserId
+    })
+  };
+  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    fetchOptions.signal = AbortSignal.timeout(DIFY_TIMEOUT_MS);
+  }
+
+  let response;
+  try {
+    response = await fetch(`${DIFY_API_URL}/chat-messages`, fetchOptions);
+  } catch (_error) {
+    throw createDifyError('Dify could not be reached.');
+  }
+
+  if (!response.ok) {
+    console.error('Dify request failed with status:', response.status);
+    throw createDifyError('Dify returned an unsuccessful response.');
+  }
+
+  return parseAgentStream(response);
 }
 
 

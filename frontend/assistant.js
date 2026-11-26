@@ -47,11 +47,7 @@
         return null;
       }
 
-      const data = await res.json();
-
-      console.log("BillMate AI response:", data);
-
-      return data.reply || null;
+      return await res.json();
     } catch (error) {
       console.error("Assistant error:", error);
       return null;
@@ -397,6 +393,65 @@
 
       messages.scrollTop =
         messages.scrollHeight;
+      return div;
+    }
+
+    function renderPendingActions(actions) {
+      if (!Array.isArray(actions) || actions.length === 0) return;
+      const container = document.createElement("div");
+      container.className = "bm-msg bm-bot";
+
+      actions.forEach((action) => {
+        const card = document.createElement("div");
+        card.style.cssText = "border:1px solid #64748b;border-radius:10px;padding:10px;margin-top:8px;";
+        const preview = document.createElement("p");
+        preview.textContent = action.preview || "Confirm this financial action.";
+        const controls = document.createElement("div");
+        controls.style.cssText = "display:flex;gap:8px;";
+        const status = document.createElement("p");
+        status.setAttribute("role", "status");
+        const confirm = document.createElement("button");
+        confirm.type = "button";
+        confirm.textContent = "Confirm";
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.textContent = "Cancel";
+
+        async function submit(operation) {
+          confirm.disabled = true;
+          cancel.disabled = true;
+          status.textContent = operation === "confirm" ? "Processing…" : "Cancelling…";
+          try {
+            const response = await fetch(
+              `${getBaseUrl()}/api/ai/actions/${encodeURIComponent(action.confirmationToken)}/${operation}`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${localStorage.getItem("billmateToken") || ""}`
+                }
+              }
+            );
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.error || data.msg || "Unable to update this action.");
+            status.textContent = operation === "confirm" ? "Action completed." : "Action cancelled.";
+            controls.remove();
+          } catch (error) {
+            status.textContent = error.message;
+            confirm.disabled = false;
+            cancel.disabled = false;
+          }
+        }
+
+        confirm.addEventListener("click", () => submit("confirm"));
+        cancel.addEventListener("click", () => submit("cancel"));
+        controls.append(confirm, cancel);
+        card.append(preview, controls, status);
+        container.appendChild(card);
+      });
+
+      messages.appendChild(container);
+      messages.scrollTop = messages.scrollHeight;
     }
 
     // Initial message
@@ -439,18 +494,19 @@
         messages.scrollHeight;
 
       // Call BillMate backend
-      const aiAnswer =
+      const aiResult =
         await callAI(q);
 
       // Remove loading message
       loadingDiv.remove();
 
       // AI successfully responded
-      if (aiAnswer) {
+      if (aiResult?.reply) {
         addMsg(
-          aiAnswer,
+          aiResult.reply,
           "bot"
         );
+        renderPendingActions(aiResult.pendingActions);
 
         return;
       }

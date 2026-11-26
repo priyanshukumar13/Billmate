@@ -60,6 +60,10 @@ const BillSchema = new mongoose.Schema({
     default: null,
     index: true
   },
+  aiActionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null
+  },
   transactionDate: {
     type: Date,
     default: null
@@ -80,6 +84,11 @@ const BillSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
+
+BillSchema.index(
+  { aiActionId: 1 },
+  { unique: true, partialFilterExpression: { aiActionId: { $type: 'objectId' } } }
+);
 
 // Alias userId -> user
 BillSchema.virtual('userId').get(function () {

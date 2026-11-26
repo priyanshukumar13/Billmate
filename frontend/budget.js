@@ -25,6 +25,22 @@ document.addEventListener("DOMContentLoaded", async () => {
             'Authorization': `Bearer ${localStorage.getItem('billmateToken') || ''}`
         };
 
+    async function syncBudgetWithServer() {
+        const initializeUrl = `${BASE_URL}/api/profile/budget/initialize`;
+        const stored = parseFloat(localStorage.getItem('userBudget'));
+        const candidate = Number.isFinite(stored) && stored > 0 ? stored : 50000;
+        const response = await fetch(initializeUrl, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ budget: candidate })
+        });
+        if (!response.ok) throw new Error('Unable to synchronize your budget with BillMate.');
+        const data = await response.json();
+        userBudget = Number(data.budget);
+        localStorage.setItem('userBudget', String(userBudget));
+        renderBudgetPage();
+    }
+
     /* ===============================
        📥 2. FETCH DATA & CALCULATE
     =============================== */
@@ -134,7 +150,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     =============================== */
     const budgetForm = $("budgetSettingForm");
     if (budgetForm) {
-        budgetForm.onsubmit = (e) => {
+        budgetForm.onsubmit = async (e) => {
             e.preventDefault();
             const raw = $("budgetAmountInput") ? $("budgetAmountInput").value.trim() : "";
             const val = parseFloat(raw);
@@ -144,8 +160,18 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-            userBudget = val;
-            localStorage.setItem("userBudget", String(val));
+            const response = await fetch(`${BASE_URL}/api/profile/budget`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ budget: val })
+            });
+            if (!response.ok) {
+                alert('Unable to save your budget. Please try again.');
+                return;
+            }
+
+            userBudget = Number((await response.json()).budget);
+            localStorage.setItem("userBudget", String(userBudget));
 
             // Update userSettings JSON as well
             try {
@@ -169,5 +195,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // Initial load
-    fetchBudgetData();
+    syncBudgetWithServer()
+        .then(fetchBudgetData)
+        .catch((error) => {
+            console.error('Budget synchronization failed:', error);
+            fetchBudgetData();
+        });
 });

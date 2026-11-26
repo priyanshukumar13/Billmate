@@ -64,6 +64,21 @@ function runDashboardLogic() {
             'Authorization': `Bearer ${localStorage.getItem('billmateToken') || ''}`
         };
 
+    async function syncBudgetWithServer() {
+        const storedBudget = parseFloat(localStorage.getItem('userBudget'));
+        const candidate = Number.isFinite(storedBudget) && storedBudget > 0 ? storedBudget : 50000;
+        const response = await fetch(`${BASE_URL}/api/profile/budget/initialize`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ budget: candidate })
+        });
+        if (!response.ok) throw new Error('Unable to synchronize your budget with BillMate.');
+        const data = await response.json();
+        userBudget = Number(data.budget);
+        localStorage.setItem('userBudget', String(userBudget));
+        updateDashboard();
+    }
+
     function showConnectionError(msg) {
         const alertContainer = $("alert-container");
         if (!alertContainer) return;
@@ -384,12 +399,21 @@ function runDashboardLogic() {
     }
 
     if (saveBudgetBtn) {
-        saveBudgetBtn.onclick = () => {
+        saveBudgetBtn.onclick = async () => {
             const raw = budgetInput ? String(budgetInput.value).trim() : '';
             const val = parseFloat(raw);
             if (!isNaN(val) && isFinite(val) && val > 0) {
-                userBudget = val;
-                localStorage.setItem("userBudget", String(val));
+                const response = await fetch(`${BASE_URL}/api/profile/budget`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ budget: val })
+                });
+                if (!response.ok) {
+                    alert('Unable to save your budget. Please try again.');
+                    return;
+                }
+                userBudget = Number((await response.json()).budget);
+                localStorage.setItem("userBudget", String(userBudget));
                 try {
                     const rawSettings = JSON.parse(localStorage.getItem("userSettings") || "{}");
                     rawSettings.budget = val;
@@ -700,5 +724,10 @@ function runDashboardLogic() {
     }
 
     // Initial load
-    fetchBills();
+    syncBudgetWithServer()
+        .then(fetchBills)
+        .catch((error) => {
+            console.error('Budget synchronization failed:', error);
+            fetchBills();
+        });
 }

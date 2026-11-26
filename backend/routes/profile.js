@@ -42,6 +42,7 @@ function sanitizeUser(user) {
     email_notifications: Boolean(user.email_notifications),
     sms_notifications: Boolean(user.sms_notifications),
     reminder_days_before: Array.isArray(user.reminder_days_before) ? user.reminder_days_before : [1, 3],
+    monthlyBudget: user.monthlyBudget ?? null,
     created_at: user.created_at,
     updated_at: user.updated_at
   };
@@ -55,6 +56,60 @@ router.get('/', auth, async (req, res) => {
     return res.json(sanitizeUser(user));
   } catch (error) {
     return res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+router.get('/budget', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('monthlyBudget');
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    return res.json({ budget: user.monthlyBudget ?? null });
+  } catch (error) {
+    console.error('Fetch budget error:', error.message);
+    return res.status(500).json({ msg: 'Failed to fetch budget.' });
+  }
+});
+
+router.put('/budget', auth, async (req, res) => {
+  const budget = Number(req.body?.budget);
+  if (!Number.isFinite(budget) || budget <= 0 || budget > 1000000000) {
+    return res.status(400).json({ msg: 'Budget must be a number greater than 0 and at most 1,000,000,000.' });
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: { monthlyBudget: budget } },
+      { new: true, runValidators: true, select: 'monthlyBudget' }
+    );
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    return res.json({ budget: user.monthlyBudget });
+  } catch (error) {
+    console.error('Update budget error:', error.message);
+    return res.status(500).json({ msg: 'Failed to update budget.' });
+  }
+});
+
+router.post('/budget/initialize', auth, async (req, res) => {
+  const budget = Number(req.body?.budget);
+  if (!Number.isFinite(budget) || budget <= 0 || budget > 1000000000) {
+    return res.status(400).json({ msg: 'Budget must be a number greater than 0 and at most 1,000,000,000.' });
+  }
+
+  try {
+    const user = await User.findOneAndUpdate(
+      { _id: req.user.id, monthlyBudget: null },
+      { $set: { monthlyBudget: budget } },
+      { new: true, runValidators: true, select: 'monthlyBudget' }
+    );
+    if (user) return res.json({ budget: user.monthlyBudget, initialized: true });
+
+    const existing = await User.findById(req.user.id).select('monthlyBudget');
+    if (!existing) return res.status(404).json({ msg: 'User not found' });
+    return res.json({ budget: existing.monthlyBudget ?? 50000, initialized: false });
+  } catch (error) {
+    console.error('Initialize budget error:', error.message);
+    return res.status(500).json({ msg: 'Failed to initialize budget.' });
   }
 });
 
