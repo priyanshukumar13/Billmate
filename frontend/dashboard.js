@@ -46,9 +46,6 @@
 =============================== */
 function runDashboardLogic() {
     const $ = id => document.getElementById(id);
-    const greeting = $("headerGreeting");
-    if (greeting) greeting.textContent = greeting.textContent.replace(/\s*👋\s*$/u, "");
-
     const BASE_URL = (typeof window.getBillmateApiBase === 'function')
         ? window.getBillmateApiBase()
         : (window.BILLMATE_API_BASE_URL || 'https://billmate-backend.onrender.com');
