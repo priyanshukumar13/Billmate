@@ -348,6 +348,9 @@ function runDashboardLogic() {
         const billNameInput = $("bill-name");
         if (!formCard || !billNameInput) return;
 
+        const secondaryTools = formCard.closest('details');
+        if (secondaryTools) secondaryTools.open = true;
+
         const header = document.querySelector('.top-header');
         const headerOffset = header ? header.offsetHeight + 24 : 80;
         const rect = formCard.getBoundingClientRect();
