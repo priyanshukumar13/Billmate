@@ -18,7 +18,7 @@
         }
     </script>
 </head>
-<body>
+<body class="dashboard-page">
 
 <div class="app-container">
 
@@ -29,15 +29,24 @@
             <span>BillMate</span>
         </a>
 
-        <nav class="side-nav">
-            <a href="dashboard.html" class="active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="calendar.html"><i data-lucide="calendar"></i> Calendar</a>
-            <a href="bills.html"><i data-lucide="receipt"></i> Bills</a>
-            <a href="expenses.html"><i data-lucide="pie-chart"></i> Expenses</a>
-            <a href="reports.html"><i data-lucide="file-text"></i> Reports</a>
-            <a href="budget.html"><i data-lucide="target"></i> Budget</a>
-            <a href="assistant.html"><i data-lucide="sparkles"></i> AI Assistant</a>
-            <a href="settings.html"><i data-lucide="settings"></i> Settings</a>
+        <nav class="side-nav" aria-label="Main navigation">
+            <div class="nav-group">
+                <span class="nav-group-label">Workspace</span>
+                <a href="dashboard.html" class="active" aria-current="page"><i data-lucide="layout-dashboard" aria-hidden="true"></i> Dashboard</a>
+                <a href="calendar.html"><i data-lucide="calendar-days" aria-hidden="true"></i> Calendar</a>
+            </div>
+            <div class="nav-group">
+                <span class="nav-group-label">Plan &amp; manage</span>
+                <a href="bills.html"><i data-lucide="receipt" aria-hidden="true"></i> Bills</a>
+                <a href="expenses.html"><i data-lucide="chart-pie" aria-hidden="true"></i> Expenses</a>
+                <a href="budget.html"><i data-lucide="wallet-cards" aria-hidden="true"></i> Budget</a>
+            </div>
+            <div class="nav-group">
+                <span class="nav-group-label">Insights &amp; tools</span>
+                <a href="reports.html"><i data-lucide="chart-no-axes-combined" aria-hidden="true"></i> Reports</a>
+                <a href="assistant.html"><i data-lucide="sparkles" aria-hidden="true"></i> AI Assistant</a>
+                <a href="settings.html"><i data-lucide="settings-2" aria-hidden="true"></i> Settings</a>
+            </div>
         </nav>
 
         <!-- Sidebar Upload Receipt Card -->
@@ -68,11 +77,19 @@
             </div>
             
             <div class="header-actions">
-                <button class="btn-add-bill-header" id="openAddExpenseModalBtn" type="button" onclick="window.openAddExpenseModal()" style="background: linear-gradient(135deg, #10b981, #059669); border-color: #059669;">
-                    <i data-lucide="receipt"></i> Add Expense
+                <button class="btn-add-bill-header cta-expense" id="openAddExpenseModalBtn" type="button" onclick="window.openAddExpenseModal()" aria-label="Add Expense">
+                    <span class="cta-icon-wrap" aria-hidden="true">
+                        <i data-lucide="receipt" class="cta-icon-default"></i>
+                        <i data-lucide="check" class="cta-icon-alt"></i>
+                    </span>
+                    <span class="cta-label"><span class="cta-label-default">Add Expense</span><span class="cta-label-hover">Nice Move!</span></span>
                 </button>
-                <button class="btn-add-bill-header" id="openAddBillModalBtn" type="button">
-                    <i data-lucide="plus"></i> Add New Bill
+                <button class="btn-add-bill-header cta-bill" id="openAddBillModalBtn" type="button" aria-label="Add New Bill">
+                    <span class="cta-icon-wrap" aria-hidden="true">
+                        <i data-lucide="plus" class="cta-icon-default"></i>
+                        <i data-lucide="send" class="cta-icon-alt"></i>
+                    </span>
+                    <span class="cta-label"><span class="cta-label-default">Add New Bill</span><span class="cta-label-hover">Let&apos;s Get It Done!</span></span>
                 </button>
                 <button class="header-icon-btn theme-toggle-btn" id="themeToggleBtn" type="button" title="Switch Theme (Light/Dark)" aria-label="Toggle theme">
                     <i data-lucide="sun" class="theme-icon-sun"></i>
@@ -122,24 +139,24 @@
             <div class="card stat-card">
                 <div class="stat-card-inner">
                     <div>
-                        <div class="stat-card-title">Total Budget</div>
-                        <div class="amount" id="display-budget">₹0</div>
-                        <div class="subtitle">This Month</div>
-                    </div>
-                    <div class="stat-icon" style="background: #f0fdf4; color: #22c55e;">
-                        <i data-lucide="wallet"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="card stat-card">
-                <div class="stat-card-inner">
-                    <div>
                         <div class="stat-card-title">Total Due</div>
                         <div class="amount" id="display-due" style="color: #ef4444;">₹0</div>
                         <div class="subtitle" id="due-subtitle">0 bills pending</div>
                     </div>
                     <div class="stat-icon" style="background: #fff7ed; color: #f97316;">
                         <i data-lucide="clock"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <div class="stat-card-inner">
+                    <div>
+                        <div class="stat-card-title">Remaining Budget</div>
+                        <div class="amount" id="display-balance">₹0</div>
+                        <div class="subtitle" id="budget-msg" style="color: #8b5cf6;">Calculating...</div>
+                    </div>
+                    <div class="stat-icon" style="background: #faf5ff; color: #a855f7;">
+                        <i data-lucide="calendar"></i>
                     </div>
                 </div>
             </div>
@@ -158,12 +175,12 @@
             <div class="card stat-card">
                 <div class="stat-card-inner">
                     <div>
-                        <div class="stat-card-title">Remaining Budget</div>
-                        <div class="amount" id="display-balance">₹0</div>
-                        <div class="subtitle" id="budget-msg" style="color: #8b5cf6;">Calculating...</div>
+                        <div class="stat-card-title">Total Budget</div>
+                        <div class="amount" id="display-budget">₹0</div>
+                        <div class="subtitle">This Month</div>
                     </div>
-                    <div class="stat-icon" style="background: #faf5ff; color: #a855f7;">
-                        <i data-lucide="calendar"></i>
+                    <div class="stat-icon" style="background: #f0fdf4; color: #22c55e;">
+                        <i data-lucide="wallet"></i>
                     </div>
                 </div>
             </div>
@@ -279,32 +296,37 @@
                 </div>
             </div>
 
-            <!-- Right Column: Add Bill Form & AI Receipt Scanner -->
-            <div>
-                <div class="card" style="margin-bottom: 20px;">
-                    <h3>Add New Bill</h3>
-                    <form id="add-bill-form">
-                        <input id="bill-name" placeholder="Bill Name (e.g. Electricity, Internet)" required maxlength="100">
-                        <input id="bill-amount" type="number" step="0.01" min="1" placeholder="Amount (₹)" required>
-                        <div style="display: flex; gap: 10px;">
-                            <input id="bill-date" type="date" required style="flex:1;">
-                            <select id="bill-category" required style="flex:1;">
-                                <option value="Rent">Rent</option>
-                                <option value="Food">Food & Dining</option>
-                                <option value="Utilities">Utilities</option>
-                                <option value="Bills" selected>Bills</option>
-                                <option value="Subscription">Subscription</option>
-                                <option value="Insurance">Insurance</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-add-bill"><i data-lucide="plus"></i> Add Bill</button>
-                    </form>
+            <!-- Secondary tools remain available on demand -->
+            <details class="dashboard-secondary-tools" id="dashboardSecondaryTools">
+                <summary>
+                    <span class="secondary-tools-icon"><i data-lucide="list-plus" aria-hidden="true"></i></span>
+                    <span><strong>Quick add &amp; receipt tools</strong><small>Add a bill manually or scan a receipt</small></span>
+                    <i data-lucide="chevron-down" class="secondary-tools-chevron" aria-hidden="true"></i>
+                </summary>
+                <div class="dashboard-secondary-content">
+                    <div class="card">
+                        <h3>Add New Bill</h3>
+                        <form id="add-bill-form">
+                            <input id="bill-name" placeholder="Bill Name (e.g. Electricity, Internet)" required maxlength="100">
+                            <input id="bill-amount" type="number" step="0.01" min="1" placeholder="Amount (₹)" required>
+                            <div class="bill-form-fields">
+                                <input id="bill-date" type="date" required>
+                                <select id="bill-category" required>
+                                    <option value="Rent">Rent</option>
+                                    <option value="Food">Food &amp; Dining</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Bills" selected>Bills</option>
+                                    <option value="Subscription">Subscription</option>
+                                    <option value="Insurance">Insurance</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-add-bill"><i data-lucide="plus" aria-hidden="true"></i> Add Bill</button>
+                        </form>
+                    </div>
+                    <div id="react-receipt-scanner-root"></div>
                 </div>
-
-                <!-- React AI Receipt Scanner mounts here -->
-                <div id="react-receipt-scanner-root"></div>
-            </div>
+            </details>
         </div>
     </main>
 </div>
