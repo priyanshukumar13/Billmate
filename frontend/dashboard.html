@@ -18,7 +18,7 @@
         }
     </script>
 </head>
-<body>
+<body class="dashboard-page">
 
 <div class="app-container">
 
@@ -29,15 +29,27 @@
             <span>BillMate</span>
         </a>
 
-        <nav class="side-nav">
-            <a href="dashboard.html" class="active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-            <a href="calendar.html"><i data-lucide="calendar"></i> Calendar</a>
-            <a href="bills.html"><i data-lucide="receipt"></i> Bills</a>
-            <a href="expenses.html"><i data-lucide="pie-chart"></i> Expenses</a>
-            <a href="reports.html"><i data-lucide="file-text"></i> Reports</a>
-            <a href="budget.html"><i data-lucide="target"></i> Budget</a>
-            <a href="assistant.html"><i data-lucide="sparkles"></i> AI Assistant</a>
-            <a href="settings.html"><i data-lucide="settings"></i> Settings</a>
+        <nav class="side-nav" aria-label="Primary">
+            <div class="side-nav-group">
+                <span class="side-nav-group-label">Overview</span>
+                <a href="dashboard.html" class="active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="calendar.html"><i data-lucide="calendar"></i> Calendar</a>
+            </div>
+            <div class="side-nav-group">
+                <span class="side-nav-group-label">Manage money</span>
+                <a href="bills.html"><i data-lucide="receipt"></i> Bills</a>
+                <a href="expenses.html"><i data-lucide="pie-chart"></i> Expenses</a>
+                <a href="budget.html"><i data-lucide="target"></i> Budget</a>
+            </div>
+            <div class="side-nav-group">
+                <span class="side-nav-group-label">Insights</span>
+                <a href="reports.html"><i data-lucide="file-text"></i> Reports</a>
+                <a href="assistant.html"><i data-lucide="sparkles"></i> AI Assistant</a>
+            </div>
+            <div class="side-nav-group">
+                <span class="side-nav-group-label">Account</span>
+                <a href="settings.html"><i data-lucide="settings"></i> Settings</a>
+            </div>
         </nav>
 
         <!-- Sidebar Upload Receipt Card -->
@@ -68,11 +80,25 @@
             </div>
             
             <div class="header-actions">
-                <button class="btn-add-bill-header" id="openAddExpenseModalBtn" type="button" onclick="window.openAddExpenseModal()" style="background: linear-gradient(135deg, #10b981, #059669); border-color: #059669;">
-                    <i data-lucide="receipt"></i> Add Expense
+                <button class="btn-add-bill-header" id="openAddExpenseModalBtn" type="button" aria-label="Add Expense" onclick="window.openAddExpenseModal()" style="background: linear-gradient(135deg, #10b981, #059669); border-color: #059669;">
+                    <span class="dashboard-cta-icon dashboard-expense-icon" aria-hidden="true">
+                        <i data-lucide="receipt" class="expense-receipt-icon"></i>
+                        <i data-lucide="check" class="expense-check-icon"></i>
+                    </span>
+                    <span class="dashboard-cta-labels">
+                        <span class="dashboard-cta-label-default">Add Expense</span>
+                        <span class="dashboard-cta-label-hover" aria-hidden="true">Nice Move!</span>
+                    </span>
                 </button>
-                <button class="btn-add-bill-header" id="openAddBillModalBtn" type="button">
-                    <i data-lucide="plus"></i> Add New Bill
+                <button class="btn-add-bill-header" id="openAddBillModalBtn" type="button" aria-label="Add New Bill">
+                    <span class="dashboard-cta-icon dashboard-bill-icon" aria-hidden="true">
+                        <i data-lucide="plus" class="bill-plus-icon"></i>
+                        <i data-lucide="send" class="bill-plane-icon"></i>
+                    </span>
+                    <span class="dashboard-cta-labels">
+                        <span class="dashboard-cta-label-default">Add New Bill</span>
+                        <span class="dashboard-cta-label-hover" aria-hidden="true">Let's Get It Done!</span>
+                    </span>
                 </button>
                 <button class="header-icon-btn theme-toggle-btn" id="themeToggleBtn" type="button" title="Switch Theme (Light/Dark)" aria-label="Toggle theme">
                     <i data-lucide="sun" class="theme-icon-sun"></i>
@@ -169,12 +195,143 @@
             </div>
         </div>
 
-        <!-- 3 MIDDLE CARDS -->
-        <div class="visual-grid">
-            <!-- 1. Spending Overview -->
-            <div class="card">
+        <section class="dashboard-section" aria-labelledby="operations-heading">
+            <div class="dashboard-section-heading">
+                <h2 id="operations-heading">Your next steps</h2>
+                <p>Check what is coming up, then see how your budget is tracking.</p>
+            </div>
+            <div class="visual-grid">
+                <!-- Upcoming bills are the next item to act on -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+                        <h3>Upcoming Bills</h3>
+                        <a href="bills.html" style="color: #3b82f6; font-size: 0.82rem; text-decoration: none; font-weight: 500;">View All</a>
+                    </div>
+                    <div id="upcoming-bills-mini-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Budget Overview -->
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Budget Overview</h3>
+                        <select style="width: auto; padding: 4px 8px; font-size: 0.78rem; margin-bottom: 0;">
+                            <option>This Month</option>
+                        </select>
+                    </div>
+                    <div style="margin-top: 14px;">
+                        <div class="budget-overview-header">
+                            <small>Monthly Budget</small>
+                            <h2 id="budget-overview-total">₹0</h2>
+                        </div>
+                        <div style="display:flex; align-items:flex-end; justify-content:space-between;">
+                            <div>
+                                <small style="color:var(--text-muted); font-size:0.78rem;">Spent</small>
+                                <div style="font-size: 1.15rem; font-weight:700;">
+                                    <span id="budget-overview-spent">₹0</span>
+                                    <span id="budget-overview-pct" style="color:#f97316; font-size:0.8rem; font-weight: 600; margin-left: 4px;">+ 0%</span>
+                                </div>
+                            </div>
+                            <div class="wallet-icon-illustration" aria-label="Wallet Overview">
+                                <i data-lucide="wallet"></i>
+                            </div>
+                        </div>
+                        <div class="progress-container">
+                            <div id="budget-progress" class="progress-bar"></div>
+                        </div>
+                        <div class="budget-footer">
+                            <div class="budget-footer-item">
+                                <span>Remaining</span>
+                                <strong id="budget-overview-remaining" style="color: #22c55e;">₹0</strong>
+                            </div>
+                            <a href="budget.html" style="color: #3b82f6; font-size: 0.82rem; font-weight: 500; text-decoration: none;">Manage Budget &rarr;</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-section" aria-labelledby="activity-heading">
+            <div class="dashboard-section-heading">
+                <h2 id="activity-heading">Recent activity</h2>
+                <p>Review recent bills or add one to keep your records up to date.</p>
+            </div>
+            <div class="bottom-grid">
+                <!-- Recent Bills Table -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 style="margin-bottom: 0;">Recent Bills</h3>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <div class="filter-tabs" style="padding: 2px;">
+                                <button id="filterAllBills" class="filter-tab active">All</button>
+                                <button id="filterUnpaidBills" class="filter-tab">Unpaid</button>
+                                <button id="filterPaidBills" class="filter-tab">Paid</button>
+                            </div>
+                            <a href="bills.html" style="margin-left: 8px; color: #3b82f6; font-size: 0.82rem; text-decoration: none; font-weight: 500;">View All</a>
+                        </div>
+                    </div>
+                    <div class="bill-table-wrapper">
+                        <table class="bill-table">
+                            <thead>
+                                <tr>
+                                    <th>Bill Name</th>
+                                    <th>Due Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bill-table-body">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Column: Add Bill Form & AI Receipt Scanner -->
+                <div>
+                    <div class="card" style="margin-bottom: 20px;">
+                        <h3>Add New Bill</h3>
+                        <form id="add-bill-form">
+                            <input id="bill-name" placeholder="Bill Name (e.g. Electricity, Internet)" required maxlength="100">
+                            <input id="bill-amount" type="number" step="0.01" min="1" placeholder="Amount (₹)" required>
+                            <div style="display: flex; gap: 10px;">
+                                <input id="bill-date" type="date" required style="flex:1;">
+                                <select id="bill-category" required style="flex:1;">
+                                    <option value="Rent">Rent</option>
+                                    <option value="Food">Food & Dining</option>
+                                    <option value="Utilities">Utilities</option>
+                                    <option value="Bills" selected>Bills</option>
+                                    <option value="Subscription">Subscription</option>
+                                    <option value="Insurance">Insurance</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-add-bill"><i data-lucide="plus"></i> Add Bill</button>
+                        </form>
+                    </div>
+
+                    <!-- React AI Receipt Scanner mounts here -->
+                    <div id="react-receipt-scanner-root"></div>
+                </div>
+            </div>
+        </section>
+
+        <details class="dashboard-insights card">
+            <summary>
+                <span class="dashboard-insights-title">
+                    <i data-lucide="pie-chart" aria-hidden="true"></i>
+                    <span>
+                        <strong>Spending insights</strong>
+                        <small>Category breakdown for this month</small>
+                    </span>
+                </span>
+                <i data-lucide="chevron-down" class="dashboard-insights-chevron" aria-hidden="true"></i>
+            </summary>
+            <div class="dashboard-insights-content">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3>Spending Overview</h3>
+                    <h3>By category</h3>
                     <select style="width: auto; padding: 4px 8px; font-size: 0.78rem; margin-bottom: 0;">
                         <option>This Month</option>
                     </select>
@@ -194,118 +351,7 @@
                     <a href="reports.html" style="color: #3b82f6; font-size: 0.82rem; text-decoration: none; font-weight: 500;">View Full Report &rarr;</a>
                 </div>
             </div>
-
-            <!-- 2. Budget Overview -->
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3>Budget Overview</h3>
-                    <select style="width: auto; padding: 4px 8px; font-size: 0.78rem; margin-bottom: 0;">
-                        <option>This Month</option>
-                    </select>
-                </div>
-                <div style="margin-top: 14px;">
-                    <div class="budget-overview-header">
-                        <small>Monthly Budget</small>
-                        <h2 id="budget-overview-total">₹0</h2>
-                    </div>
-                    <div style="display:flex; align-items:flex-end; justify-content:space-between;">
-                        <div>
-                            <small style="color:var(--text-muted); font-size:0.78rem;">Spent</small>
-                            <div style="font-size: 1.15rem; font-weight:700;">
-                                <span id="budget-overview-spent">₹0</span> 
-                                <span id="budget-overview-pct" style="color:#f97316; font-size:0.8rem; font-weight: 600; margin-left: 4px;">+ 0%</span>
-                            </div>
-                        </div>
-                        <div class="wallet-icon-illustration" aria-label="Wallet Overview">
-                            <i data-lucide="wallet"></i>
-                        </div>
-                    </div>
-                    <div class="progress-container">
-                        <div id="budget-progress" class="progress-bar"></div>
-                    </div>
-                    <div class="budget-footer">
-                        <div class="budget-footer-item">
-                            <span>Remaining</span>
-                            <strong id="budget-overview-remaining" style="color: #22c55e;">₹0</strong>
-                        </div>
-                        <a href="budget.html" style="color: #3b82f6; font-size: 0.82rem; font-weight: 500; text-decoration: none;">Manage Budget &rarr;</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. Upcoming Bills -->
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
-                    <h3>Upcoming Bills</h3>
-                    <a href="bills.html" style="color: #3b82f6; font-size: 0.82rem; text-decoration: none; font-weight: 500;">View All</a>
-                </div>
-                <div id="upcoming-bills-mini-list" style="display: flex; flex-direction: column; gap: 12px;">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- BOTTOM GRID -->
-        <div class="bottom-grid">
-            <!-- Recent Bills Table -->
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h3 style="margin-bottom: 0;">Recent Bills</h3>
-                    <div style="display: flex; gap: 6px; align-items: center;">
-                        <div class="filter-tabs" style="padding: 2px;">
-                            <button id="filterAllBills" class="filter-tab active">All</button>
-                            <button id="filterUnpaidBills" class="filter-tab">Unpaid</button>
-                            <button id="filterPaidBills" class="filter-tab">Paid</button>
-                        </div>
-                        <a href="bills.html" style="margin-left: 8px; color: #3b82f6; font-size: 0.82rem; text-decoration: none; font-weight: 500;">View All</a>
-                    </div>
-                </div>
-                
-                <div class="bill-table-wrapper">
-                    <table class="bill-table">
-                        <thead>
-                            <tr>
-                                <th>Bill Name</th>
-                                <th>Due Date</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bill-table-body">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Right Column: Add Bill Form & AI Receipt Scanner -->
-            <div>
-                <div class="card" style="margin-bottom: 20px;">
-                    <h3>Add New Bill</h3>
-                    <form id="add-bill-form">
-                        <input id="bill-name" placeholder="Bill Name (e.g. Electricity, Internet)" required maxlength="100">
-                        <input id="bill-amount" type="number" step="0.01" min="1" placeholder="Amount (₹)" required>
-                        <div style="display: flex; gap: 10px;">
-                            <input id="bill-date" type="date" required style="flex:1;">
-                            <select id="bill-category" required style="flex:1;">
-                                <option value="Rent">Rent</option>
-                                <option value="Food">Food & Dining</option>
-                                <option value="Utilities">Utilities</option>
-                                <option value="Bills" selected>Bills</option>
-                                <option value="Subscription">Subscription</option>
-                                <option value="Insurance">Insurance</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-add-bill"><i data-lucide="plus"></i> Add Bill</button>
-                    </form>
-                </div>
-
-                <!-- React AI Receipt Scanner mounts here -->
-                <div id="react-receipt-scanner-root"></div>
-            </div>
-        </div>
+        </details>
     </main>
 </div>
 
